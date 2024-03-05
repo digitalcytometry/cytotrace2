@@ -1,0 +1,36 @@
+Package: CytoTRACE2
+Type: Package
+Title: Prediction of absolute developmental potential of single cells
+Version: 1.0.0
+Authors@R: c(
+    person("Minji", "Kang", role = "aut"),
+    person("Jose Juan", "Almagro Armenteros", role = "aut"),
+    person("Gunsagar", "Gulati", role = "aut"),
+    person("Rachel", "Gleyzer", role = "aut"),
+    person("Erin", "Brown", role = "aut"),
+    person("Susanna", "Avagyan", role = "aut"),
+    person("CytoTRACE 2, Team", email = "cytotrace2team@gmail.com", role = "cre"))
+Description: CytoTRACE 2 is a computational method for predicting cellular potency categories and absolute developmental potential from single-cell RNA-sequencing data.
+License: STANFORD NON-COMMERCIAL SOFTWARE LICENSE AGREEMENT
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.2.3
+Depends:
+    R (>= 3.5.0),
+    data.table,
+    doParallel,
+    dplyr,
+    ggplot2,
+    HiClimR,
+    magrittr,
+    Matrix,
+    parallel,
+    plyr,
+    RANN,
+    Rfast,
+    Seurat,
+    SeuratObject,
+    stringr
+    
+
+    

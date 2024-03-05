@@ -1,0 +1,21 @@
+name: cytotrace2
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - r-devtools=2.4.5
+  - r-base=4.2.0
+  - r-rann=2.6.1
+  - r-hiclimr=2.2.1
+  - r-matrix=1.6.1
+  - r-seurat=4.3.0.1
+  - r-dplyr=1.1.3
+  - r-data.table=1.14.8
+  - r-doParallel=1.0.17
+  - r-ggplot2=3.4.3
+  - r-magrittr=2.0.3
+  - r-parallelly=1.36.0
+  - r-plyr=1.8.9
+  - r-stringr=1.5.0
+  - r-Rfast=2.0.8
+  - r-devtools

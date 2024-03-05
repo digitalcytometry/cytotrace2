@@ -1,0 +1,23 @@
+# Prepare environment.yml file
+name: cytotrace2-py
+channels:
+  - conda-forge
+  - pytorch
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.9.0
+  - anndata
+  - numpy
+  - pandas
+  - scanpy
+  - scipy
+  - scikit-learn=1.0.2
+  - pytorch=2.0.0
+  - notebook # optional, for jupyter notebook
+  - r-rann=2.6.1
+  - r-seurat=4.3.0
+  - r-ggplot2
+  - r-data.table
+  - r-dplyr
+  - r-argparse
