@@ -203,7 +203,7 @@ cytotrace2 <- function(input,
                           package = "CytoTRACE2"))
   }
 
-  nc <- min(chunk, ncores)
+  nc <- min(length(parameter_dict), ncores)
   # composite function to preprocess and predict each subsample
   subsample_processing_f <-   function(subsample) {
     dt <- data[,subsample]
