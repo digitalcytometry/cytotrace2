@@ -601,7 +601,9 @@ CytoTRACE 2 was developed over mouse and human data, and this package accepts da
 No normalization is required, but any form of normalization preserving the relative rank of genes within each sample is acceptable. CytoTRACE 2 relies on gene ranks, so any such normalization will not influence results. For the UMAP plots produced by ```plotData```, the input expression is log-normalized unless the maximum value of the input expression matrix is less than 20.
 
 4. **What if I have multiple batches of data? Should I perform any integration?**
-No batch integration is required. Instead, we recommend running CytoTRACE 2 separately over each dataset. While raw predictions are made per cell without regard to the broader dataset, the postprocessing step to refine predictions  adjusts predictions using information from other cells in the dataset, and so may be impacted by batch effects. Note that CytoTRACE 2 outputs are calibrated to be comparable across datasets without further adjustment, so no integration is recommended over the predictions either.
+No batch integration is required. Instead, we recommend running CytoTRACE 2 separately over each dataset. While raw predictions are made per cell without regard to the broader dataset, the postprocessing step to refine predictions  adjusts predictions using information from other cells in the dataset, and so may be impacted by batch effects. Note that CytoTRACE 2 outputs, except for CytoTRACE2_Relative, are calibrated to be comparable across datasets without further adjustment. Therefore, no integration is recommended over the predictions either. As for CytoTRACE2_Relative, it should not be compared across different runs, as it is based on the ranking and scaling of CytoTRACE2_Scores within the context of the specific input dataset. 
+
+
 
 5. **Do the R and Python packages produce equivalent output?**
 When run without batching (i.e., downsampling the input dataset into batches [or chunks] for parallel processing or to save memory), these packages produce equivalent output. When batching is performed, package outputs will vary, but remain highly correlated in practice.
