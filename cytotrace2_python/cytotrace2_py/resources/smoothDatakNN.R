@@ -42,14 +42,15 @@ smoothDatakNN <- function(output_dir, suffix, max_pcs, seed){
 
   suppressMessages({
   suppressWarnings({
-    seurat_obj <- CreateSeuratObject(counts = as.matrix(ranked_df), data = as.matrix(ranked_df), min.cells = 0, min.features = 0)
+    seurat_obj <- Seurat::CreateSeuratObject(counts = as.matrix(ranked_df),  min.cells = 0, min.features = 0)
+    seurat_obj <- Seurat::SetAssayData(object = seurat_obj, new.data = as.matrix(ranked_df))
   })
-  VariableFeatures(seurat_obj) <- top_genes
-  seurat_obj <- ScaleData(seurat_obj)
-  seurat_obj <- RunPCA(seurat_obj, npcs = min(ncol(seurat_obj) - 1, max_pcs))
+  Seurat::VariableFeatures(seurat_obj) <- top_genes
+  seurat_obj <- Seurat::ScaleData(seurat_obj)
+  seurat_obj <- Seurat::RunPCA(seurat_obj, npcs = min(ncol(seurat_obj) - 1, max_pcs))
  
   threshold_var_explained <- 0.5
-  stdev_explained <- Stdev(object = seurat_obj, reduction = 'pca')
+  stdev_explained <- Seurat::Stdev(object = seurat_obj, reduction = 'pca')
   var_explained <- stdev_explained * stdev_explained
   var_explained <- data.frame(var_explained)
 

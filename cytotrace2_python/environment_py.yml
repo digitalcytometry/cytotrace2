@@ -6,7 +6,7 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - python=3.9.0
+  - python=3.9.19
   - anndata
   - numpy
   - pandas
@@ -16,7 +16,9 @@ dependencies:
   - pytorch=2.0.0
   - notebook # optional, for jupyter notebook
   - r-rann=2.6.1
-  - r-seurat=4.3.0
+  - r-seurat=4.3.0.1
+  - r-seuratobject=5.0.0
+  - r-matrix=1.6.1
   - r-ggplot2
   - r-data.table
   - r-dplyr

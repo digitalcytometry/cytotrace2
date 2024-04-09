@@ -9,6 +9,7 @@ dependencies:
   - r-hiclimr=2.2.1
   - r-matrix=1.6.1
   - r-seurat=4.3.0.1
+  - r-seuratobject=5.0.0
   - r-dplyr=1.1.3
   - r-data.table=1.14.8
   - r-doParallel=1.0.17
@@ -18,4 +19,3 @@ dependencies:
   - r-plyr=1.8.9
   - r-stringr=1.5.0
   - r-Rfast=2.0.8
-  - r-devtools
