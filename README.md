@@ -20,7 +20,7 @@ This framework learns multivariate gene expression programs for each potency cat
     <img width="900" src="images/schematic.png">
 </p>
 
-This documentation page details the R package for applying CytoTRACE 2. <strong> For the python package, see <a href="/cytotrace2_python" target="_blank">CytoTRACE 2 Python</a> </strong>.
+This documentation page details the R package for applying CytoTRACE 2. <strong> For the python package, see <a href="/cytotrace2_python" target="_blank">CytoTRACE 2 Python.</a> </strong>
 
 
 ## Installation
