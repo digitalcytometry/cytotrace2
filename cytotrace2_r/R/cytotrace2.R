@@ -96,7 +96,7 @@ cytotrace2 <- function(input,
   message('cytotrace2: Started loading data')
   
   # if input is Seurat object but the is_seurat is not set to TRUE
-  if (class(input) == "Seurat" & is_seurat == FALSE) {
+  if (class(input)[1] == "Seurat" & is_seurat == FALSE) {
     stop("The input is a Seurat object. Please make sure to set is_seurat = TRUE.")
   }
 
@@ -115,12 +115,25 @@ cytotrace2 <- function(input,
       }
     }
   
+  # check if the input corresponds to expected criteria
+  # check for uniqueness of cell and gene names
+  if (any(duplicated(rownames(data)))) {
+    stop("Please make sure the gene names are unique")
+  }
+  
   if (any(duplicated(colnames(data)))) {
     stop("Please make sure the cell/sample names are unique")
   }
-  
-  if (any(duplicated(rownames(data)))) {
-    stop("Please make sure the gene names are unique")
+
+  # check for the format of the input
+  if (!is.data.frame(data)) {
+   message("The function expects an input of type 'data.frame' with gene names as row names and cell IDs as column names.\nAttempting to convert the provided input to the required format.")
+   data <- as.data.frame(data)
+  }
+
+  # check if rownames are gene names (numbers as characters are not allowed)
+  if (!all(grepl("[a-zA-Z]", rownames(data)))) {
+    warning("The rownames of the input data are numeric. Please make sure the rownames are gene names.")
   }
   
   message("Dataset contains ", dim(data)[1], " genes and ", dim(data)[2], " cells.")

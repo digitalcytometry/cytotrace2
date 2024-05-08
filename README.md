@@ -192,6 +192,7 @@ Visualizing the results we can directly compare the predicted potency scores wit
 
 - By default, CytoTRACE 2 expects mouse data. To provide human data, users should specify ```species = "human"```
 - To pass a loaded Seurat object or an .rds file path containing a Seurat object as gene expression input to the ```cytotrace2()``` function, users should specify ```is_seurat = TRUE``` and ```slot_type``` as the name of the assay slot containing the gene expression matrix to use for prediction (can be either ```counts``` or ```data```; default is ```counts```). This will return a Seurat object with metadata containing all CytoTRACE 2 cell potency predictions, which can be further passed to the ```plotData()``` function for visualization with ```is_seurat = TRUE```, as shown in the [__vignette__](#vignette-2:-human-cord-blood-mononuclear-cells-(seurat-object-input,-~2-minutes)) below. 
+- If the passed Seurat object already contains PCA and UMAP embeddings, the ```plotData()``` function will use these embeddings for visualization. Otherwise, it will generate new PCA and UMAP embeddings internally.
 - By default, CytoTRACE 2 uses a reduced ensemble of 5 models for prediction. To use the full ensemble of 17 models, users should specify ```full_model = TRUE```. More information about the reduced and full model ensembles can be found in the [__Extended usage details__](#extended-usage-details) section below.
 - **NOTE**: To reproduce the results in the manuscript, use the following parameters: <br>
       ```full_model = TRUE``` <br>
@@ -301,7 +302,7 @@ Expected plotting outputs:
 CytoTRACE 2 requires a single-cell RNA-sequencing gene expression object as input. This can include raw counts, as well as normalized counts, as long as normalization preserves ranking of input gene values within a cell. 
 This input can be provided in any of the following formats:
 
-1. **A data table**. This object of class data.frame or data.table should have genes as rows and cells as columns, with row and column names set accordingly.
+1. **A data table**. This object of class data.frame or of another class which allows storing row and column names. This should have genes as rows and cells as columns, with row and column names set accordingly.
 2. **A filepath to a tab-delimited file**. This file should contain a gene expression matrix with genes as rows and cells as columns. The first row must contain the cell IDs (header), and the first column must contain the gene names that can have a column name or an empty header.
 3. **A Seurat object**. This object should contain gene expression values to be used, stored in `object[["RNA"]]@slot_type`, where `slot_type` is the name of the assay slot containing the gene expression matrix to use for prediction (can be either `counts` or `data`). 
 4. **A filepath to an .rds file containing a Seurat object**. This file should contain a Seurat object as described in `option 3`.
@@ -390,6 +391,8 @@ If a phenotype annotation file is provided, ```plotData``` will return two more 
 
 - **Phenotype UMAP**: a UMAP colored by phenotype annotation (named *Phenotype_UMAP* in the output list)
 - **Phenotype potency box plot**: a boxplot of predicted potency score separated by phenotype/group the annotation file (named *CytoTRACE2_Boxplot_byPheno* in the output list)
+
+If the input is a Seurat object containing predictions, with ```is_seurat = TRUE``` and ```slot_type``` argument properly specified ("counts" or "data"), if it contains PCA and UMAP embeddings (named "pca" and "umap" if `seurat_object@reductions``), the function will use these embeddings for visualization. Otherwise, it will generate new PCA and UMAP embeddings internally.
 
 </details>
 
@@ -493,7 +496,9 @@ Optional input:
 - *annotation*: The annotation data (optional, default is ***NULL***, used to prepare phenotype UMAP and box plots)
 - *expression_data*: The expression data to be used for plotting (default is ***NULL***, if cytotrace2 is a Seurat object containing expression data and is_seurat = TRUE, can be left NULL).
 - *pc_dims*: The number of principal components to use for UMAP visualization (default is ***30***).
-- *is_seurat*: Logical, indicating whether the input is a Seurat object (default is ***FALSE***).
+- *is_seurat*: Logical, indicating whether the input is a Seurat object (default is ***FALSE***). If `TRUE` and the input Seurat object contains PCA and UMAP embeddings, those will be automatically used for visualization, otherwise, PCA and UMAP will be calculated.
+
+- *slot_type*: Character indicating the type of slot to access from "RNA" assay if provided is a Seurat object & is_seurat = TRUE (options: ***counts*** or ***data***, default is  ***counts***).
 - *seed*: Integer specifying the seed for reproducibility in random processes (default is **14**).
 
 A typical snippet to run the function with full argument specification following CytoTRACE 2 prediction: 
@@ -551,10 +556,18 @@ Following initial prediction by the core model, CytoTRACE 2 implements a postpro
       conda activate cytotrace2
     ``` 
    </details>
-4. (Activate R from terminal) Load the package into your R environment using the following command:
+4. (Activate R from terminal) Install and load the package into your R environment using the following commands:
 ```R
-  devtools::load_all("./cytotrace2_r") #run in R to load into your environment
+  devtools::install_local("./cytotrace2_r") #run to install the package locally (done once)
+  library(CytoTRACE2) #run to load the package into the current R session
 ```
+
+or
+
+```R
+  devtools::load_all("./cytotrace2_r") #to load the package into the current R session
+```
+
 Make sure you specify the path to the subdirectory "cytotrace2_r" within the cloned repository, if you're running outside the cloned repository.
 
 Now you can use the package as described in the [__Running CytoTRACE 2__](#running-cytotrace-2) section.
@@ -574,7 +587,13 @@ NOTE: If you are running on a M1/M2 Mac, you may get an error solving the conda 
 
 If you have made local updates to your version of the CytoTRACE 2 source code, you should execute 
 ```bash
-  devtools::load_all()
+  devtools::install_local("./cytotrace2_r") #to re-install the package locally (done once)
+  library(CytoTRACE2) #to load the updated package into the current R session
+```
+or 
+
+```bash
+  devtools::load_all("./cytotrace2_r") #to load the updated package into the current R session
 ``` 
 in the package folder, before running. 
 
@@ -595,19 +614,49 @@ CytoTRACE 2 classifies cells into six potency categories:
   - **Differentiated**: Mature cells, including cells with no developmental potential
   
 2. **What organism can my data be from?**
-CytoTRACE 2 was developed over mouse and human data, and this package accepts data from either. If human data is provided (with ```species = 'human'``` specified), the algorithm will automatically perform an orthology mapping to convert human genes to mouse genes for the CytoTRACE 2 feature set. 
+
+    CytoTRACE 2 was developed over mouse and human data, and this package accepts data from either. If human data is provided (with ```species = 'human'``` specified), the algorithm will automatically perform an orthology mapping to convert human genes to mouse genes for the CytoTRACE 2 feature set. 
 
 3. **Should I normalize the data before running the main function?**
-No normalization is required, but any form of normalization preserving the relative rank of genes within each sample is acceptable. CytoTRACE 2 relies on gene ranks, so any such normalization will not influence results. For the UMAP plots produced by ```plotData```, the input expression is log-normalized unless the maximum value of the input expression matrix is less than 20.
+
+    No normalization is required, but any form of normalization preserving the relative rank of genes within each sample is acceptable. CytoTRACE 2 relies on gene ranks, so any such normalization will not influence results. For the UMAP plots produced by ```plotData```, if the input is not a Seurat object already containing UMAP and PCA embeddings, the input expression is log-normalized unless the maximum value of the input expression matrix is less than 20.
 
 4. **What if I have multiple batches of data? Should I perform any integration?**
-No batch integration is required. Instead, we recommend running CytoTRACE 2 separately over each dataset. While raw predictions are made per cell without regard to the broader dataset, the postprocessing step to refine predictions  adjusts predictions using information from other cells in the dataset, and so may be impacted by batch effects. Note that CytoTRACE 2 outputs, except for CytoTRACE2_Relative, are calibrated to be comparable across datasets without further adjustment. Therefore, no integration is recommended over the predictions either. As for CytoTRACE2_Relative, it should not be compared across different runs, as it is based on the ranking and scaling of CytoTRACE2_Scores within the context of the specific input dataset. 
 
-
+    No batch integration is required. Instead, we recommend running CytoTRACE 2 separately over each dataset. While raw predictions are made per cell without regard to the broader dataset, the postprocessing step to refine predictions  adjusts predictions using information from other cells in the dataset, and so may be impacted by batch effects. Note that CytoTRACE 2 outputs, except for CytoTRACE2_Relative, are calibrated to be comparable across datasets without further adjustment. Therefore, no integration is recommended over the predictions either. As for CytoTRACE2_Relative, it should not be compared across different runs, as it is based on the ranking and scaling of CytoTRACE2_Scores within the context of the specific input dataset. 
 
 5. **Do the R and Python packages produce equivalent output?**
-When run without batching (i.e., downsampling the input dataset into batches [or chunks] for parallel processing or to save memory), these packages produce equivalent output. When batching is performed, package outputs will vary, but remain highly correlated in practice.
 
+    When run without batching (i.e., downsampling the input dataset into batches [or chunks] for parallel processing or to save memory), these packages produce equivalent output. When batching is performed, package outputs will vary, but remain highly correlated in practice.
+
+6. **What strategies are recommended for managing very large datasets (>100K cells) with CytoTRACE 2?**
+
+    For large datasets, subdividing the data into smaller segments, each containing up to 100,000 cells, is advisable. This division not only facilitates more efficient memory management and processing but also preserves the integrity of your analysis. Depending on the dataset’s characteristics, you can segment by experimental conditions (technical batches) or samples. Additionally, when choosing your subset size, please be mindful of the computational resources available to you--some systems may support ~100,000 cells while for others, a further reduced subset size may be preferable.
+
+7. **Why does the UMAP generated by CytoTRACE 2's `plotData` function differ from the cell embeddings saved in my input Seurat object, and how can I get them to match?**
+
+    If the input Seurat object already contains cell embeddings, those need to be accessible as `"pca"` and `"umap"` from `seurat_object@reductions` layer, and the `plotData` function will automatically use these embeddings for visualization. Make sure to have `is_seurat` set to `TRUE`.
+
+    Otherwise, the `plotData` function utilizes the `RunPCA` and `RunUMAP` functions to generate cell embeddings internally. `pc_dims` and `seed` parameters of the `plotData` function (corresponding to the `dims` and `seed.use` parameters in `RunUMAP`) can be tweaked to adjust the UMAP plot.
+      
+    ```R
+        # Example of setting pc_dims and seed in plotData
+        plotData(data_object, pc_dims = 15, seed = 42)
+    ```
+
+    If you have a different type/name of reduction (other than UMAP/umap) in your Seurat object that you would like to use for visualization, you can either rename it to "umap" or manually replace the embeddings on `plotData` output plots:
+
+      ```R
+      # Assuming 'data_object' contains the prefered cell embeddings in "tsne" reduction
+
+      emb_1 <- data_object@reductions$tsne@cell.embeddings[,1]  # First dimension
+      emb_2 <- data_object@reductions$tsne@cell.embeddings[,2]  # Second dimension
+
+      # Replace CytoTRACE 2 generated UMAP coordinates in the plot output
+      plots[["CytoTRACE2_UMAP"]][[1]][["data"]]["UMAP_1"] <- emb_1
+      plots[["CytoTRACE2_UMAP"]][[1]][["data"]]["UMAP_2"] <- emb_2
+      ```
+      Alternatively, you can use predicted values from `cytotrace2()` function and plot those directly on your prefered original plot, without using the `plotData()` function.
 
 </details>
 
