@@ -90,20 +90,6 @@ loadData_fromSeurat <- function(object, slot_type) {
 
 preprocessData <- function (data, species) {
   
-  # check for uniqueness of cell and gene names
-  if (any(duplicated(rownames(data)))) {
-    stop("Please make sure the gene names are unique")
-  }
-  
-  if (any(duplicated(colnames(data)))) {
-    stop("Please make sure the cell/sample names are unique")
-  }
-
-  if (!is.data.frame(data) & !is.data.table(data)) {
-   message("The function expects an input of type 'data.frame' or 'data.table'.\nAttempting to convert the provided input to the required format.")
-   data <- as.data.frame(data)
-  }
-  
   
   # Load the features_model.csv file
   features <- read.csv(system.file("extdata", "features_model_training_17.csv",
