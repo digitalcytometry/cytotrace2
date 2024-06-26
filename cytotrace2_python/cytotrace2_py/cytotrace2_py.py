@@ -161,11 +161,15 @@ def cytotrace2(input_path,
    
     # Process each chunk separately
     results = []
-    with concurrent.futures.ProcessPoolExecutor(max_workers=pred_cores_to_use) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=pred_cores_to_use) as executor:
         for idx in range(chunk_number):
             chunked_expression = expression.iloc[subsamples[idx], :]
-            print('cytotrace2: Initiated processing batch '+str(idx+1)+'/'+str(chunk_number)+' with '+str(chunked_expression.shape[0])+' cells')
-            results.append(executor.submit(process_subset, idx, chunked_expression, smooth_batch_size, smooth_cores_to_use, species, use_model_dir, output_dir, max_pcs, seed))
+            print('cytotrace2: Initiated processing batch ' + str(idx + 1) + '/' + str(chunk_number) + ' with ' + str(chunked_expression.shape[0]) + ' cells')
+            results.append(executor.submit(process_subset, idx,
+                                        chunked_expression, smooth_batch_size,
+                                        smooth_cores_to_use, species,
+                                        use_model_dir, output_dir, max_pcs, seed))
+        
         for f in concurrent.futures.as_completed(results):
             smooth_by_knn_df = f.result()
             predictions.append(smooth_by_knn_df)
