@@ -47,10 +47,14 @@ def process_subset(idx, chunked_expression, smooth_batch_size, smooth_cores_to_u
         print('cytotrace2: Fewer than 100 cells in dataset. Skipping KNN smoothing step.')
         smooth_by_knn_df = binned_score_pred_df.copy()
     else:
-        run_script = pkg_resources.resource_filename("cytotrace2_py","resources/smoothDatakNN.R")
-        knn_path = output_dir+'/smoothbykNNresult'+suffix+'.txt'
-        out = subprocess.run(['Rscript', run_script, '--output-dir', output_dir, '--suffix', suffix, '--max-pcs', str(max_pcs), '--seed', str(seed)], check=True)
-        smooth_by_knn_df = pd.read_csv(knn_path, index_col = 0, sep='\t')
+        #run_script = pkg_resources.resource_filename("cytotrace2_py","resources/smoothDatakNN.R")
+        #knn_path = output_dir+'/smoothbykNNresult'+suffix+'.txt'
+        #out = subprocess.run(['Rscript', run_script, '--output-dir', output_dir,
+                               #'--suffix', suffix, '--max-pcs', str(max_pcs), '--seed', str(seed)], check=True)
+        from .common.smoothDatakNN import smooth_data_kNN
+        smooth_data_kNN(output_dir=output_dir, suffix=suffix, max_pcs=max_pcs, seed=seed)
+        knn_path = os.path.join(output_dir, f'smoothbykNNresult{suffix}.txt')
+        smooth_by_knn_df = pd.read_csv(knn_path, index_col=0, sep='\t')
 
     return smooth_by_knn_df
 
