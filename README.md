@@ -3,6 +3,12 @@
 </p>
 
 <h2> <p align="center">
+  CytoTRACE 2 v1.1.0 is coming soon!
+</p> </h2>
+
+We are thrilled to announce the upcoming release of CytoTRACE 2 v1.1.0, featuring major performance improvements, enhanced input support and expanded visualization options to further empower your single-cell RNA-sequencing analyses. Stay tuned for the official release!
+
+<h2> <p align="center">
       Prediction of absolute developmental potential <br> using  single-cell expression data
 </p> </h2>
 
