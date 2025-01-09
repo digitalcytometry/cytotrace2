@@ -9,13 +9,11 @@ cytotrace2(
   species = "mouse",
   is_seurat = FALSE,
   slot_type = "counts",
-  full_model = FALSE,
   batch_size = 10000,
   smooth_batch_size = 1000,
   parallelize_models = TRUE,
   parallelize_smoothing = TRUE,
   ncores = NULL,
-  max_pcs = 200,
   seed = 14
 )
 }
@@ -33,14 +31,11 @@ Seurat object (default is FALSE).}
 \item{slot_type}{Character, indicating the type of slot to access from "RNA" assay if provided is a Seurat object &
 is_seurat = TRUE. Can be 'counts' or 'data' (default is 'counts')}
 
-\item{full_model}{Logical, indicating whether to predict based on the full ensemble of 17 models
-or a reduced ensemble of 5 most predictive models (default is FALSE).}
-
-\item{batch_size}{Integer or NULL, indicating the number of cells to subsample for the pipeline steps.
-No subsampling if NULL.(default is 10000, recommended value for input data size > 10K cells).}
+\item{batch_size}{Integer or NULL, indicating the number of cells to processat once, including subsampling 
+for KNN smoothing. No subsampling if NULL.(default is 10000, recommended value for input data size > 10K cells).}
 
 \item{smooth_batch_size}{Integer or NULL, indicating the number of cells to subsample further
-within the batch_size for the smoothing step of the pipeline. No subsampling if NULL.
+within the batch_size for the smoothing by diffusion step of the pipeline. No subsampling if NULL.
 (default is 1000, recommended value for input data size > 1K cells).}
 
 \item{parallelize_models}{Logical, indicating whether to run the prediction function on
@@ -51,9 +46,7 @@ on subsamples in parallel on multiple threads (default is TRUE).}
 
 \item{ncores}{Integer, indicating the number of cores to utilize when parallelize_models
 and/or parallelize_smoothing are TRUE (default is NULL, pipeline detects the number of
-available cores and runs on that number; for Windows, it will be set to 1).}
-
-\item{max_pcs}{Integer, indicating the maximum number of principal components to use in the smoothing by kNN step (default is 200).}
+available cores and runs on half of them; for Windows, it will be set to 1).}
 
 \item{seed}{Integer, specifying the seed for reproducibility in random processes (default is 14).}
 }
@@ -97,5 +90,5 @@ Link to the publication will be added upon being published
 See https://github.com/digitalcytometry/cytotrace2 for a detailed package description and instructions
 }
 \author{
-Minji Kang, Jose Juan Almagro Armenteros, Gunsagar Gulati, Rachel Gleyzer, Erin Brown and Susanna Avagyan.
+Minji Kang, Erin Brown, Jose Juan Almagro Armenteros, Gunsagar Gulati, Rachel Gleyzer, and Susanna Avagyan.
 }

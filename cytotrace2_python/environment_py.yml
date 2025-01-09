@@ -8,18 +8,16 @@ channels:
 dependencies:
   - python=3.9.19
   - anndata
+  - matplotlib
   - numpy
   - pandas
-  - scanpy
-  - scipy
-  - scikit-learn=1.0.2
   - pytorch=2.0.0
+  - scanpy
+  - scikit-learn=1.0.2
+  - scipy
+  - seaborn
   - notebook # optional, for jupyter notebook
-  - r-rann=2.6.1
-  - r-seurat=4.3.0.1
-  - r-seuratobject=5.0.0
-  - r-matrix=1.6.1
-  - r-ggplot2
-  - r-data.table
-  - r-dplyr
-  - r-argparse
+
+
+
+

@@ -7,76 +7,72 @@ import scanpy as sc
 import subprocess
 import torch
 import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 from sklearn.model_selection import train_test_split
 
 from cytotrace2_py.common.gen_utils import *
 from cytotrace2_py.common.argument_parser import *
+from cytotrace2_py.common.plot import *
 
-
-def process_subset(idx, chunked_expression, smooth_batch_size, smooth_cores_to_use, species, use_model_dir, output_dir, max_pcs, seed):
+def process_subset(idx, chunked_expression, B_in, smooth_batch_size, smooth_cores_to_use, species, use_model_dir, output_dir, seed, disable_verbose):
 
     # map and rank
-    cell_names, gene_names, ranked_data = preprocess(chunked_expression, species)
+    cell_names, gene_names, rank_data, log2_data = preprocess(chunked_expression, species)
 
+    # Check gene counts as QC measure
+    gene_counts = (log2_data>0).sum(1)
+    low_gc_frac = (gene_counts < 500).mean()
+    if low_gc_frac >= 0.2:
+        warn_str = "{:.1f}".format(100*low_gc_frac)+"% of input cells express fewer than 500 genes. For best results, a minimum gene count of 500-1000 is recommended. \n    Please see FAQ for guidelines at https://github.com/digitalcytometry/cytotrace2#frequently-asked-questions"
+        warnings.warn(warn_str,stacklevel=2)
     # top variable genes
-    top_col_inds = top_var_genes(ranked_data)
+    top_col_inds = top_var_genes(log2_data)
     top_col_names = gene_names[top_col_inds]
     
     # predict by unrandomized chunked batches
-    predicted_df = predict(ranked_data, cell_names, use_model_dir , chunked_expression.shape[0])
-	
-    smooth_score = smoothing_by_diffusion(predicted_df, ranked_data, top_col_inds, smooth_batch_size,  seed)
-    
+    if not disable_verbose:
+        print('cytotrace2: Performing initial model prediction')
+    predicted_df = predict(rank_data, log2_data, B_in, cell_names, use_model_dir, chunked_expression.shape[0])
+    predicted_df['Raw_Score'] = predicted_df['preKNN_CytoTRACE2_Score'].copy()
+    if not disable_verbose:
+        print('cytotrace2: Performing smoothing by diffusion')
+    smooth_score = smoothing_by_diffusion(predicted_df, log2_data, top_col_inds, smooth_batch_size, smooth_cores_to_use, seed) 
     binned_score_pred_df = binning(predicted_df, smooth_score)
-
-    # Transpose the matrix and create a DataFrame
-    ranked_df = pd.DataFrame(ranked_data.T,  columns = cell_names)
-	
-    # Set the column names
-    ranked_df.index = gene_names
-    suffix = '_'+str(idx)
-    binned_score_pred_df.to_csv(output_dir+'/binned_df'+suffix+'.txt',sep='\t', index=True)
-    ranked_df.to_csv(output_dir+'/ranked_df'+suffix+'.txt', sep='\t', index=True)
-	
-    with open(output_dir+'/top_var_genes'+suffix+'.txt', 'w') as f:
-        for item in top_col_names:
-            f.write("%s\n" % item)
 
     if chunked_expression.shape[0] < 100:
         print('cytotrace2: Fewer than 100 cells in dataset. Skipping KNN smoothing step.')
-        smooth_by_knn_df = binned_score_pred_df.copy()
+        binned_score_pred_df['CytoTRACE2_Score'] = binned_score_pred_df['preKNN_CytoTRACE2_Score'].copy()
+        return binned_score_pred_df
     else:
-        run_script = pkg_resources.resource_filename("cytotrace2_py","resources/smoothDatakNN.R")
-        knn_path = output_dir+'/smoothbykNNresult'+suffix+'.txt'
-        out = subprocess.run(['Rscript', run_script, '--output-dir', output_dir, '--suffix', suffix, '--max-pcs', str(max_pcs), '--seed', str(seed)], check=True)
-        smooth_by_knn_df = pd.read_csv(knn_path, index_col = 0, sep='\t')
-
-    return smooth_by_knn_df
+        if not disable_verbose:
+            print('cytotrace2: Performing smoothing by adaptive KNN')
+        smooth_by_knn_df = neighborhood_smoothing(binned_score_pred_df, log2_data, smooth_cores_to_use)
+        return smooth_by_knn_df
 
 def calculate_cores_to_use(chunk_number,smooth_chunk_number,max_cores,disable_parallelization):
 
     pred_cores_to_use = 1
     smooth_cores_to_use = 1
-    if smooth_chunk_number == 1 and chunk_number == 1:
-        print("cytotrace2: The number of cells in your dataset is less than the specified batch size.\n")
+    if smooth_chunk_number == 1:
+        print("cytotrace2: The number of cells in your dataset is less than the specified smoothing batch size.\n")
         print("    Model prediction will not be parallelized.")
 
-    elif not disable_parallelization:
+    if not disable_parallelization:
         # Calculate number of available processors
         num_proc = os.cpu_count()
-        print("cytotrace2: "+str(num_proc)+" cores detected")
+        #print("cytotrace2: "+str(num_proc)+" cores detected")
         if num_proc == 1:
             print("cytotrace2: Only one core detected. CytoTRACE 2 will not be run in parallel.")
         elif max_cores == None:
-            pred_cores_to_use = min(chunk_number,num_proc-1)
-            smooth_cores_to_use = min(smooth_chunk_number,max(math.floor((num_proc-1)/pred_cores_to_use),1))
-            print('cytotrace2: Running '+str(pred_cores_to_use)+' prediction batch(es) in parallel using '+str(smooth_cores_to_use)+' cores for smoothing per batch.')
+            pred_cores_to_use = max(1, num_proc // 2)
+            smooth_cores_to_use = min(smooth_chunk_number,max(1, num_proc // 2))
+            print('cytotrace2: Running '+str(chunk_number)+' prediction batch(es) sequentially using '+str(smooth_cores_to_use)+' cores per batch.')
         else:
-            max_cores = min(max_cores,num_proc-1)
+            max_cores = min(max_cores,max(1, num_proc // 2))
             pred_cores_to_use = min(chunk_number,max_cores)
-            smooth_cores_to_use = min(smooth_chunk_number,max(math.floor(max_cores/pred_cores_to_use),1))
-            print('cytotrace2: Running '+str(pred_cores_to_use)+' prediction batch(es) in parallel using '+str(smooth_cores_to_use)+' cores for smoothing per batch.')
+            smooth_cores_to_use = min(smooth_chunk_number,max_cores)
+            print('cytotrace2: Running '+str(chunk_number)+' prediction batch(es) sequentially using '+str(smooth_cores_to_use)+' cores per batch.')
 
     return pred_cores_to_use, smooth_cores_to_use
 
@@ -84,14 +80,14 @@ def calculate_cores_to_use(chunk_number,smooth_chunk_number,max_cores,disable_pa
 def cytotrace2(input_path, 
                annotation_path = "",
                species = "mouse",
-               full_model = False,
-               batch_size = 10000,
+               batch_size = 20000,
                smooth_batch_size = 1000,
                disable_parallelization = False,
                max_cores = None,
-               max_pcs = 200,
                seed = 14,
-               output_dir = 'cytotrace2_results'):
+               output_dir = 'cytotrace2_results',
+               disable_plotting = False,
+               disable_verbose = False):
 
     # Make output directory 
     out = os.system('mkdir -p '+output_dir)
@@ -100,40 +96,54 @@ def cytotrace2(input_path,
     print('cytotrace2: Input parameters')
     print('    Input file: '+input_path)
     print('    Species: '+species)
-    print('    Full model: '+str(full_model))
     print('    Parallelization enabled: '+str(not disable_parallelization))
-    print('    User-provided limit for number of cores to use: '+str(max_cores))
     print('    Batch size: '+str(batch_size))
     print('    Smoothing batch size: '+str(smooth_batch_size))
-    print('    Max PCs: '+str(max_pcs))
     print('    Seed: '+str(seed))
     print('    Output directory: '+output_dir)
+    print('    Plotting enabled: '+str(not disable_plotting))
+    print('    Verbose mode enabled: '+str(not disable_verbose))
 
+    print('    User-provided limit for number of cores to use: '+str(max_cores))
+    if max_cores is None:
+        cpus_detected = os.cpu_count()
+        print('       ...'+str(cpus_detected)+' cores detected. CytoTRACE 2 will run using up to '+str(max(cpus_detected // 2, 1))+'/'+str(cpus_detected)+' cores.')
 
-    expression =  load(input_path)
+    expression = read_file(input_path)
     print('cytotrace2: Dataset characteristics')
     print('    Number of input genes: ',str(expression.shape[1]))
     print('    Number of input cells: ',str(expression.shape[0]))
+
+    # Raise warning if the data seems to be log2-transformed already
+    if expression.max().max() <= 20:
+        warnings.warn("Input expression data seem to be log2-transformed. Please provide data as raw counts or CPM/TPM.",stacklevel=1)
     
+    if not disable_plotting:
+        if not disable_verbose:
+            print('cytotrace2: Computing UMAP embeddings from full expression')
+        if len(annotation_path)>0:
+            df_anno = pd.read_csv(annotation_path,index_col=0,sep='\t')
+            adata_plot = process_with_scanpy(expression, df_anno)
+        else:
+            adata_plot = process_with_scanpy(expression)
+
     # Check if the input species is accurate
     # Calculate the proportion of row names that are all uppercase (assumed to be human) or not all uppercase (assumed to be mouse)
     is_human = sum([name.isupper() for name in expression.columns]) / expression.shape[1] > 0.9
     is_mouse = sum([not name.isupper() for name in expression.columns]) / expression.shape[1] > 0.9
 
     if is_human and species == 'mouse':
-        warnings.warn("Species is most likely human. Please revise the 'species' input to the function.")
+        warnings.warn("Species is most likely human. Please revise the 'species' input to the function.",stacklevel=1)
 
     if is_mouse and species == 'human':
-        warnings.warn("Species is most likely mouse. Please revise the 'species' input to the function.")
+        warnings.warn("Species is most likely mouse. Please revise the 'species' input to the function.",stacklevel=1)
 
     np.random.seed(seed)
     if batch_size > len(expression):
         print("cytotrace2: The passed batch_size is greater than the number of cells in the subsample. \n    Now setting batch_size to "+str(len(expression))+".")
         batch_size <- len(expression)
-    if batch_size > 10000:
-        print(".   Please consider reducing the batch size to 10000 for runtime and memory efficiency.")
-    elif len(expression) > 10000 and batch_size > 10000:
-        print("cytotrace2: Please consider reducing the batch_size to 10000 for runtime and memory efficiency.")
+    elif len(expression) > 50000 and batch_size > 50000:
+        print("cytotrace2: Please consider reducing the batch_size to 50000 for runtime and memory efficiency.")
     
     print('cytotrace2: Preprocessing')
     
@@ -146,37 +156,27 @@ def cytotrace2(input_path,
 
     # Determine multiprocessing parameters
     pred_cores_to_use, smooth_cores_to_use = calculate_cores_to_use(chunk_number, smooth_chunk_number, max_cores, disable_parallelization)
+    torch.set_num_threads(pred_cores_to_use)
 
-    if full_model == False:
-        use_model_dir = pkg_resources.resource_filename("cytotrace2_py","resources/5_models_weights/")
-    else:
-        use_model_dir = pkg_resources.resource_filename("cytotrace2_py","resources/17_models_weights/")
-    
+    use_model_dir = pkg_resources.resource_filename("cytotrace2_py","resources/models/")
+    background_path = pkg_resources.resource_filename("cytotrace2_py","resources/background.pt")
+    B = torch.load(background_path)
+    B = B.to_dense().T
     original_names = expression.index
-    subsamples_indices = np.arange(len(expression))
-    np.random.shuffle(subsamples_indices)
+    subsamples_indices = np.arange(len(expression)) 
+    if chunk_number > 1:
+        np.random.shuffle(subsamples_indices)
     subsamples = np.array_split(subsamples_indices, chunk_number)
     
     predictions = []
    
     # Process each chunk separately
     results = []
-    with concurrent.futures.ProcessPoolExecutor(max_workers=pred_cores_to_use) as executor:
-        for idx in range(chunk_number):
-            chunked_expression = expression.iloc[subsamples[idx], :]
-            print('cytotrace2: Initiated processing batch '+str(idx+1)+'/'+str(chunk_number)+' with '+str(chunked_expression.shape[0])+' cells')
-            results.append(executor.submit(process_subset, idx, chunked_expression, smooth_batch_size, smooth_cores_to_use, species, use_model_dir, output_dir, max_pcs, seed))
-        for f in concurrent.futures.as_completed(results):
-            smooth_by_knn_df = f.result()
-            predictions.append(smooth_by_knn_df)
-
     for idx in range(chunk_number):
-        suffix = '_'+str(idx)
-        temp_file_list = [output_dir+'/binned_df'+suffix+'.txt',output_dir+'/ranked_df'+suffix+'.txt',
-                                output_dir+'/smoothbykNNresult'+suffix+'.txt',output_dir+'/top_var_genes'+suffix+'.txt']
-        for fin in temp_file_list:
-            if os.path.isfile(fin):
-                os.remove(fin)
+        chunked_expression = expression.iloc[subsamples[idx], :]
+        print('cytotrace2: Initiated processing batch '+str(idx+1)+'/'+str(chunk_number)+' with '+str(chunked_expression.shape[0])+' cells')
+        smooth_by_knn_df = process_subset(idx, chunked_expression, B, smooth_batch_size, smooth_cores_to_use, species, use_model_dir, output_dir, seed, disable_verbose)
+        predictions.append(smooth_by_knn_df)
     
     predicted_df_final = pd.concat(predictions, ignore_index=False)
     predicted_df_final = predicted_df_final.loc[original_names]
@@ -191,21 +191,18 @@ def cytotrace2(input_path,
     
     predicted_df_final['CytoTRACE2_Potency'] = pd.cut(predicted_df_final['CytoTRACE2_Score'], bins=ranges, labels=labels, include_lowest=True)
 
-    ranked_scores = scipy.stats.rankdata(predicted_df_final['CytoTRACE2_Score'])
-    relative_scores = (ranked_scores-min(ranked_scores))/(max(ranked_scores)-min(ranked_scores))
-    predicted_df_final['CytoTRACE2_Relative'] = relative_scores
+    all_scores = predicted_df_final['CytoTRACE2_Score'].values
+    predicted_df_final['CytoTRACE2_Relative'] = (all_scores-min(all_scores))/(max(all_scores)-min(all_scores))
     predicted_df_final = predicted_df_final[["CytoTRACE2_Score", "CytoTRACE2_Potency" , "CytoTRACE2_Relative", "preKNN_CytoTRACE2_Score", "preKNN_CytoTRACE2_Potency"]]
-
     predicted_df_final.to_csv(output_dir+'/cytotrace2_results.txt',sep='\t')
 
-    print('cytotrace2: Plotting outputs')
-
-    plot_script = pkg_resources.resource_filename("cytotrace2_py","resources/plot_cytotrace2_results.R")
-    
-    if annotation_path != "":
-        out = subprocess.run(['Rscript', plot_script, '--expression-path', input_path, '--result-path', output_dir+'/cytotrace2_results.txt', '--annotation-path', annotation_path, '--plot-dir', output_dir+'/plots'], check=True)
+    if not disable_plotting:
+        print('cytotrace2: Plotting outputs')
+        adata_plot.obs = pd.concat([adata_plot.obs,predicted_df_final.loc[adata_plot.obs_names,:]],axis=1)
+        #adata_plot.write_h5ad(dir_out+'saved_metadata_for_plots.h5ad')
+        plot_all_outputs(adata_plot,output_dir)
     else:
-        out = subprocess.run(['Rscript', plot_script, '--expression-path', input_path, '--result-path', output_dir+'/cytotrace2_results.txt', '--plot-dir', output_dir+'/plots'], capture_output=True)
+        print('cytotrace2: Plotting disabled')
 
     print('cytotrace2: Finished.')
     return predicted_df_final

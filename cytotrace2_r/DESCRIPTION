@@ -1,7 +1,7 @@
 Package: CytoTRACE2
 Type: Package
 Title: Prediction of absolute developmental potential of single cells
-Version: 1.0.0
+Version: 1.1.0
 Authors@R: c(
     person("Minji", "Kang", role = "aut"),
     person("Jose Juan", "Almagro Armenteros", role = "aut"),
@@ -26,8 +26,8 @@ Depends:
     Matrix,
     parallel,
     plyr,
-    RANN,
     Rfast,
+    RSpectra,
     Seurat,
     SeuratObject,
     stringr

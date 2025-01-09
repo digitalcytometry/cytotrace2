@@ -3,10 +3,45 @@
 </p>
 
 <h2> <p align="center">
-  CytoTRACE 2 v1.1.0 is coming soon!
+      CytoTRACE 2 - Version 1.1.0 Released
 </p> </h2>
 
-We are thrilled to announce the upcoming release of CytoTRACE 2 v1.1.0, featuring major performance improvements, enhanced input support and expanded visualization options to further empower your single-cell RNA-sequencing analyses. Stay tuned for the official release!
+We are thrilled to introduce **CytoTRACE 2 version 1.1.0**, packed with significant performance enhancements to elevate your single-cell transcriptomic analyses. Here's what's new in this release:
+
+### 🔍 Major Updates and Enhancements
+
+- **Retrained CytoTRACE 2 Framework**  
+  The CytoTRACE 2 model has been retrained, yielding additional performance gains in granular potency prediction and enhancing cross-platform robustness.
+
+- **Expanded Ensemble Model**  
+  The ensemble now comprises **19 models** instead of 17, improving the predictive power and stability of the framework.
+
+- **Background Expression Matrix**  
+  Introduced a background expression matrix generated during training for improved regularization.
+
+- **Enhanced Data Representations**  
+  Added Log2-adjusted representation of the input expression data to be used for prediction on top of ranked expression profiles, to capture detailed transcriptomic signals. *This changes the requirement for the input expression data to contain only raw or CPM/TPM normalized counts.*
+
+- **Adaptive Nearest Neighbor Smoothing**  
+  Modified the KNN smoothing step to employ an adaptive nearest neighbor smoothing strategy.
+
+### 💻 Codebase and Distribution Updates
+
+- **Codebase Updates**  
+  - Updated both R and Python package codebases to reflect all the above changes.
+  - Optimized for **time and memory efficiency**, ensuring faster computations and scalability.
+
+- **Enhanced Python Package Distribution**  
+  The Python version of CytoTRACE 2 is now available on [PyPI](https://pypi.org/project/cytotrace2-py/), making installation easier for Python users.
+
+### 📚 Documentation and Guides
+
+- Updated Vignettes to align with the new model features and usage instructions.
+- Refreshed README with new information, detailed explanations, and FAQ items tailored to the new framework.
+
+---
+
+We deeply appreciate the contributions from our community that made this release possible. Thank you for your continued support! 🙏
 
 <h2> <p align="center">
       Prediction of absolute developmental potential <br> using  single-cell expression data
@@ -18,7 +53,7 @@ Potency categories in the context of CytoTRACE 2 classify cells based on their d
 
 The predicted potency scores additionally provide a continuous measure of developmental potential, ranging from 0 (differentiated) to 1 (totipotent).
 
-Underlying this method is a novel, interpretable deep learning framework trained and validated across 31 human and mouse scRNA-seq datasets encompassing 28 tissue types, collectively spanning the developmental spectrum. 
+Underlying this method is a novel, interpretable deep learning framework trained and validated across 34 human and mouse scRNA-seq datasets encompassing 24 tissue types, collectively spanning the developmental spectrum. 
 
 This framework learns multivariate gene expression programs for each potency category and calibrates outputs across the full range of cellular ontogeny, facilitating direct cross-dataset comparison of developmental potential in an absolute space. 
 
@@ -60,6 +95,7 @@ The following list includes the versions of packages used during the development
     plyr (1.8.9)
     RANN (2.6.1)
     Rfast (2.0.8)
+    RSpectra (0.16.1)
     Seurat (4.3.0.1)
     SeuratObject (4.1.3)
     stringr (1.5.1)
@@ -75,15 +111,18 @@ Running ```CytoTRACE 2``` is easy and straightforward. After loading the library
 
 <details open><summary><span style="font-size: 15px;"><strong>Vignette 1: Development of mouse pancreatic epithelial cells (data table input, ~2 minutes)</strong></span></summary>
 
-To illustrate use of CytoTRACE 2 with a mouse dataset, we will use the dataset Pancreas_10x_downsampled.rds, originally from [Bastidas-Ponce et al., 2019](https://doi.org/10.1242/dev.173849), filtered to cells with known ground truth developmental potential and downsampled, available to download [here](https://drive.google.com/uc?export=download&id=1ivi9TBlmzVTDGzNWQrXXeyL68Wug989K), containing 2 objects:
-- expression_data: gene expression matrix for a scRNA-seq (10x Chromium) dataset encompassing 2280 cells from murine pancreatic epithelium
+To illustrate use of CytoTRACE 2 with a mouse dataset, we will use the dataset Pancreas_10x_downsampled.rds, originally from [Bastidas-Ponce et al., 2019](https://doi.org/10.1242/dev.173849), filtered to cells with known ground truth developmental potential and downsampled, available to download [here](https://drive.google.com/uc?export=download&id=1TYdQsMoDIJjoeuiTD5EO_kZgNJUyfRY2), containing 2 objects:
+- expression_data: gene expression matrix for a scRNA-seq (10x Chromium) dataset encompassing 2850 cells from murine pancreatic epithelium
 - annotation: phenotype annotations for the scRNA-seq dataset above. 
 
 After downloading the .rds file, we apply CytoTRACE 2 to this dataset as follows:
 
 ```r
+# load the CytoTRACE 2 package
+library(CytoTRACE2) 
+
 # download the .rds file (this will download the file to your working directory)
-download.file("https://drive.google.com/uc?export=download&id=1ivi9TBlmzVTDGzNWQrXXeyL68Wug989K", "Pancreas_10x_downsampled.rds")
+download.file("https://drive.google.com/uc?export=download&id=1TYdQsMoDIJjoeuiTD5EO_kZgNJUyfRY2", "Pancreas_10x_downsampled.rds")
 
 # load rds
 data <- readRDS("Pancreas_10x_downsampled.rds")
@@ -105,7 +144,7 @@ plots <- plotData(cytotrace2_result = cytotrace2_result,
 
 ```
 
-Expected prediction output, dataframe ```cytotrace2_result``` looks as shown below (can be downloaded from [here](./Vignette1_results.csv)):
+Expected prediction output, dataframe ```cytotrace2_result``` looks as shown below (can be downloaded from [here](./Vignette1_CytoTRACE2_results.csv)):
 
 <p align="center">
     <img width="600" src="images/Vignette1_predictions.png">
@@ -141,7 +180,7 @@ Visualizing the results we can directly compare the predicted potency scores wit
   ```
 
 <div align="center">
-  <div style="display: flex; justify-content: space-around;">
+  <div style="display: flex;">
     <img width="400" src="images/Vignette1_potency_score_umap.png">
     <img width="400" src="images/Vignette1_ground_truth_umap_with_pheno.png">
   </div>
@@ -197,14 +236,14 @@ Visualizing the results we can directly compare the predicted potency scores wit
 ***Additional specifications***
 
 - By default, CytoTRACE 2 expects mouse data. To provide human data, users should specify ```species = "human"```
+- When running on computers with less than 16GB memory, we recommend reducing ```ncores``` to 1 or 2 to avoid memory issues.
 - To pass a loaded Seurat object or an .rds file path containing a Seurat object as gene expression input to the ```cytotrace2()``` function, users should specify ```is_seurat = TRUE``` and ```slot_type``` as the name of the assay slot containing the gene expression matrix to use for prediction (can be either ```counts``` or ```data```; default is ```counts```). This will return a Seurat object with metadata containing all CytoTRACE 2 cell potency predictions, which can be further passed to the ```plotData()``` function for visualization with ```is_seurat = TRUE```, as shown in the [__vignette__](#vignette-2:-human-cord-blood-mononuclear-cells-(seurat-object-input,-~2-minutes)) below. 
-- By default, CytoTRACE 2 uses a reduced ensemble of 5 models for prediction. To use the full ensemble of 17 models, users should specify ```full_model = TRUE```. More information about the reduced and full model ensembles can be found in the [__Extended usage details__](#extended-usage-details) section below.
+- If the passed Seurat object already contains PCA and UMAP embeddings, the ```plotData()``` function will use these embeddings for visualization. Otherwise, it will generate new PCA and UMAP embeddings internally.
 - **NOTE**: To reproduce the results in the manuscript, use the following parameters: <br>
-      ```full_model = TRUE``` <br>
+      ```parallelize_models = TRUE```  <br>
+      ```parallelize_smoothing = TRUE```  <br>
       ```batch_size = 100000```  <br>
       ```smooth_batch_size = 10000```  <br>
-      ```max_pcs = 200``` <br>
-      ```seed = 14``` <br>
 
 More details on expected function input files and output objects can be found in [__Input Files__](#input-files) and [__CytoTRACE 2 outputs__](#cytotrace-2-outputs) sections below.
 
@@ -222,6 +261,9 @@ After downloading the .rds file, we apply CytoTRACE 2 to this dataset as follows
 
 
 ```r
+# load the CytoTRACE 2 package
+library(CytoTRACE2) 
+
 # download the .rds file (this will download the file to your working directory)
 download.file("https://drive.google.com/uc?export=download&id=1_OhZdz4y0R0MeB6gNlYAFC8P8rutgqzJ", "Cord_blood_CITE_seq_downsampled_SeuratObj.rds")# load the Seurat object
 
@@ -242,7 +284,7 @@ plots <- plotData(cytotrace2_result = cytotrace2_result,
                   is_seurat = TRUE)
 
 ```
-Expected prediction output ```cytotrace2_result``` is your input Seurat object with predictions added to the metadata.  The predictions in the metadata look as shown below (the resulting Seurat object can be downloaded from [here](./Vignette2_results.rds)):
+Expected prediction output ```cytotrace2_result``` is your input Seurat object with predictions added to the metadata.  The predictions in the metadata look as shown below (the resulting Seurat object can be downloaded from [here](./Vignette2_CytoTRACE2_results.rds)):
 
 <p align="center">
     <img width="600" src="images/Vignette2_predictions.png">
@@ -261,7 +303,8 @@ Expected plotting outputs:
   </p>
 
 - ***Potency category*** 
-<br> UMAP embedding of predicted potency category, reflecting the discrete classification of cells into potency categories, taking possible values of ```Differentiated```, ```Unipotent```, ```Oligopotent```, ```Multipotent```, ```Pluripotent```, and ```Totipotent```. As expected, all the cells are predicted to fall in the differentiated category.
+<br> UMAP embedding of predicted potency category, reflecting the discrete classification of cells into potency categories, taking possible values of ```Differentiated```, ```Unipotent```, ```Oligopotent```, ```Multipotent```, ```Pluripotent```, and ```Totipotent```.
+
   ```bash
   plots$CytoTRACE2_Potency_UMAP
   ```
@@ -298,16 +341,15 @@ Expected plotting outputs:
 
 </details>
 
-</details>
 
 ## Input files
 
 <details><summary>Expand section</summary>
   
-CytoTRACE 2 requires a single-cell RNA-sequencing gene expression object as input. This can include raw counts, as well as normalized counts, as long as normalization preserves ranking of input gene values within a cell. 
+CytoTRACE 2 requires a single-cell RNA-sequencing gene expression object as input. This can include either raw counts or CPM/TPM normalized counts, and should not be log-transformed.
 This input can be provided in any of the following formats:
 
-1. **A data table**. This object of class data.frame or data.table should have genes as rows and cells as columns, with row and column names set accordingly.
+1. **A data table**. This object of class data.frame or of another class which allows storing row and column names. This should have genes as rows and cells as columns, with row and column names set accordingly.
 2. **A filepath to a tab-delimited file**. This file should contain a gene expression matrix with genes as rows and cells as columns. The first row must contain the cell IDs (header), and the first column must contain the gene names that can have a column name or an empty header.
 3. **A Seurat object**. This object should contain gene expression values to be used, stored in `object[["RNA"]]@slot_type`, where `slot_type` is the name of the assay slot containing the gene expression matrix to use for prediction (can be either `counts` or `data`). 
 4. **A filepath to an .rds file containing a Seurat object**. This file should contain a Seurat object as described in `option 3`.
@@ -336,7 +378,7 @@ CytoTRACE 2 also accepts cell phenotype annotations as an optional input. This i
 
 #### CytoTRACE 2 cell potency predictions
 
-For each cell retained following quality control filtering, the CytoTRACE 2 predictions include:
+For each cell, the CytoTRACE 2 predictions include:
 
 1. *CytoTRACE2_Score*: The final predicted cellular potency score following postprocessing. Possible values are real numbers ranging from 0 (differentiated) to 1 (totipotent), which are binned into potency categories according to the following ranges:
     <div style="text-align: center;">
@@ -375,9 +417,9 @@ For each cell retained following quality control filtering, the CytoTRACE 2 pred
 
 
 2. *CytoTRACE2_Potency*: The final predicted cellular potency category following postprocessing. Possible values are ```Differentiated```, ```Unipotent```, ```Oligopotent```, ```Multipotent```, ```Pluripotent```, and ```Totipotent```. 
-3. *CytoTRACE2_Relative*: The predicted relative order of the cell, based on the absolute predicted potency scores, ranked and normalized to the range [0,1] (0 being most differentiated, 1 being least differentiated).
-4. *preKNN_CytoTRACE2_Score*: The cellular potency score predicted by the CytoTRACE 2 model before KNN smoothing (see 'binning' in the manuscript).
-5. *preKNN_CytoTRACE2_Potency*: The cellular potency category  predicted by the CytoTRACE 2 model before KNN smoothing (see 'binning' in the manuscript). Possible values are ```Differentiated```, ```Unipotent```, ```Oligopotent```, ```Multipotent```, ```Pluripotent```, and ```Totipotent```.
+3. *CytoTRACE2_Relative*: The predicted relative order of the cell, based on the absolute predicted potency scores, normalized to the range [0,1] (0 being most differentiated, 1 being least differentiated).
+4. *preKNN_CytoTRACE2_Score*: The cellular potency score predicted by the CytoTRACE 2 model before KNN smoothing (See ‘Postprocessing’ in the Methods section of the manuscript).
+5. *preKNN_CytoTRACE2_Potency*: The cellular potency category  predicted by the CytoTRACE 2 model before KNN smoothing (See ‘Postprocessing’ in the Methods section of the manuscript). Possible values are ```Differentiated```, ```Unipotent```, ```Oligopotent```, ```Multipotent```, ```Pluripotent```, and ```Totipotent```.
 
 
 For more details about postprocessing, see the [__Under the hood__](#under-the-hood) section below.
@@ -396,6 +438,8 @@ If a phenotype annotation file is provided, ```plotData``` will return two more 
 
 - **Phenotype UMAP**: a UMAP colored by phenotype annotation (named *Phenotype_UMAP* in the output list)
 - **Phenotype potency box plot**: a boxplot of predicted potency score separated by phenotype/group the annotation file (named *CytoTRACE2_Boxplot_byPheno* in the output list)
+
+If the input is a Seurat object containing predictions, with ```is_seurat = TRUE``` and ```slot_type``` argument properly specified ("counts" or "data"), if it contains PCA and UMAP embeddings (named "pca" and "umap" if `seurat_object@reductions``), the function will use these embeddings for visualization. Otherwise, it will generate new PCA and UMAP embeddings internally.
 
 </details>
 
@@ -420,40 +464,34 @@ Optional arguments:
 - *slot_type*: Character indicating the type of slot to access from "RNA" assay if provided is a Seurat object & is_seurat = TRUE (options: **counts** or **data**, default is  **counts**)
 - *parallelize_smoothing*: Logical indicating whether to run the smoothing function
 on subsamples in parallel on multiple threads (default is **TRUE**).
-- *full_model*: Logical indicating whether to predict based on the full ensemble of 17 models
-or a reduced ensemble of 5 most predictive models (default is **FALSE**).
 - *parallelize_models*: Logical indicating whether to run the prediction function on
 models in parallel on multiple threads (default is **TRUE**).
 - *ncores*: Integer indicating the number of cores to utilize when parallelize_models
 and/or parallelize_smoothing are TRUE (default is **NULL**; the pipeline detects the number of
-available cores and runs on that number; for Windows, it will be set to 1).
-- *batch_size*: Integer or NULL indicating the number of cells to subsample for the pipeline steps.
+available cores and runs on half of them; for Windows, it will be set to 1; when running on computers with less than 16GB memory, we recommend reducing it to 1 or 2 to avoid memory issues).
+- *batch_size*: Integer or NULL indicating the number of cells to process at once, including subsampling for KNN smoothing.
 No subsampling if NULL (default is **10000**; recommended for input data size > 10K cells).
 - *smooth_batch_size*: Integer or NULL indicating the number of cells to subsample further
-within the batch_size for the smoothing step of the pipeline. No subsampling if NULL
+within the batch_size for the smoothing by diffusion step of the pipeline. No subsampling if NULL
 (default is **1000**; recommended for input data size > 1K cells).
-- *max_pcs*: Integer indicating the maximum number of principal components to use
-in the smoothing by kNN step (default is **200**).
 - *seed*: Integer specifying the seed for reproducibility in random processes (default is **14**).
 
 Information about these arguments is also available in the function's manual, which can be accessed by running ```help(cytotrace2)``` within an R session.
 
-A typical snippet to run the function with full argument specification on a file path containing human data using the full model ensemble: 
+A typical snippet to run the function with full argument specification on a file path containing human data: 
 
 ```r
 cytotrace2_result <- cytotrace2("path/to/input/expression_file.tsv",
                        species = "human",
                        is_seurat = FALSE,
-                       full_model = TRUE,
                        batch_size = 10000,
                        smooth_batch_size = 1000,
                        parallelize_models = TRUE,
                        parallelize_smoothing = TRUE,
                        ncores = NULL,
-                       max_pcs = 200,
                        seed = 14)               
 ```
-A typical snippet to run the function with full argument specification on a loaded Seurat object of mouse data using the reduced model ensemble: 
+A typical snippet to run the function with full argument specification on a loaded Seurat object of mouse data: 
 
 ```r
 seurat_obj <- loadData("path/to/input/Seurat_object.rds")
@@ -461,31 +499,14 @@ cytotrace2_result <- cytotrace2(seurat_obj,
                   species = "mouse",
                   is_seurat = TRUE,
                   slot_type = "counts",
-                  full_model = FALSE,
                   batch_size = 10000,
                   smooth_batch_size = 1000,
                   parallelize_models = TRUE,
                   parallelize_smoothing = TRUE,
                   ncores = NULL,
-                  max_pcs = 200,
                   seed = 14)  
 
 ```
-
-
-
-  - <details><summary>The reduced ensemble model</summary>
-
-    Users can choose to predict based on the full ensemble of 17 models, or a reduced ensemble of 5 models, which are selected based on their high correlation (according to Concordance correlation coefficient (CCC)) with the predictions of the full model. This flexibility allows users to balance computational efficiency with predictive accuracy, tailoring the analysis to their specific needs and dataset characteristics. 
-
-    The selection of the members of the reduced ensemble is done as follows: initially, predictions are generated for the training cohort using pairs of models from all possible combinations of the 17 models. The pair that exhibits the highest CCC with the predictions of the full model is then selected and validated on the test cohort. Subsequently, this selected pair is fixed, and all other models are tested as potential candidates for a 3rd model in the ensemble. The process is iteratively repeated, adding a 4th and 5th model, ultimately arriving at the top 5 models that collectively offer optimal predictive performance. This robust methodology ensures that the reduced ensemble maintains a high correlation with the full model.
-
-    <p align="center">
-        <img width="600" src="images/reduced_model.png">
-    </p>
-
-    </details>
-
 </details>
 
 
@@ -499,7 +520,9 @@ Optional input:
 - *annotation*: The annotation data (optional, default is ***NULL***, used to prepare phenotype UMAP and box plots)
 - *expression_data*: The expression data to be used for plotting (default is ***NULL***, if cytotrace2 is a Seurat object containing expression data and is_seurat = TRUE, can be left NULL).
 - *pc_dims*: The number of principal components to use for UMAP visualization (default is ***30***).
-- *is_seurat*: Logical, indicating whether the input is a Seurat object (default is ***FALSE***).
+- *is_seurat*: Logical, indicating whether the input is a Seurat object (default is ***FALSE***). If `TRUE` and the input Seurat object contains PCA and UMAP embeddings, those will be automatically used for visualization, otherwise, PCA and UMAP will be calculated.
+
+- *slot_type*: Character indicating the type of slot to access from "RNA" assay if provided is a Seurat object & is_seurat = TRUE (options: ***counts*** or ***data***, default is  ***counts***).
 - *seed*: Integer specifying the seed for reproducibility in random processes (default is **14**).
 
 A typical snippet to run the function with full argument specification following CytoTRACE 2 prediction: 
@@ -521,7 +544,7 @@ plots <- plotData(cytotrace2_result,
 
 <details><summary>Expand section</summary> 
   
-Underlying CytoTRACE 2 is a novel deep learning framework designed to handle the complexities of single-cell potency assessment while achieving direct biological interpretability. The core of this framework is a set of Gene Set Binary Network (GSBN) modules, in which binary neural networks learn gene sets associated with each potency category. This network was trained over 17 datasets from 18 diverse human and mouse tissues, and the package here relies on an ensemble of these per-dataset trained models. 
+Underlying CytoTRACE 2 is a novel deep learning framework designed to handle the complexities of single-cell potency assessment while achieving direct biological interpretability. The core of this framework is a set of Gene Set Binary Network (GSBN) modules, in which binary neural networks learn gene sets associated with each potency category. This network was trained over 19 datasets from 16 diverse human and mouse tissues, and the package here relies on an ensemble of these per-dataset trained models. 
 <p align="center">
     <img width="700" src="images/BNN_schematic.png">
 </p>
@@ -557,10 +580,18 @@ Following initial prediction by the core model, CytoTRACE 2 implements a postpro
       conda activate cytotrace2
     ``` 
    </details>
-4. (Activate R from terminal) Load the package into your R environment using the following command:
+4. (Activate R from terminal) Install and load the package into your R environment using the following commands:
 ```R
-  devtools::load_all("./cytotrace2_r") #run in R to load into your environment
+  devtools::install_local("./cytotrace2_r") #run to install the package locally (done once)
+  library(CytoTRACE2) #run to load the package into the current R session
 ```
+
+or
+
+```R
+  devtools::load_all("./cytotrace2_r") #to load the package into the current R session
+```
+
 Make sure you specify the path to the subdirectory "cytotrace2_r" within the cloned repository, if you're running outside the cloned repository.
 
 Now you can use the package as described in the [__Running CytoTRACE 2__](#running-cytotrace-2) section.
@@ -580,7 +611,13 @@ NOTE: If you are running on a M1/M2 Mac, you may get an error solving the conda 
 
 If you have made local updates to your version of the CytoTRACE 2 source code, you should execute 
 ```bash
-  devtools::load_all()
+  devtools::install_local("./cytotrace2_r") #to re-install the package locally (done once)
+  library(CytoTRACE2) #to load the updated package into the current R session
+```
+or 
+
+```bash
+  devtools::load_all("./cytotrace2_r") #to load the updated package into the current R session
 ``` 
 in the package folder, before running. 
 
@@ -601,21 +638,55 @@ CytoTRACE 2 classifies cells into six potency categories:
   - **Differentiated**: Mature cells, including cells with no developmental potential
   
 2. **What organism can my data be from?**
-CytoTRACE 2 was developed over mouse and human data, and this package accepts data from either. If human data is provided (with ```species = 'human'``` specified), the algorithm will automatically perform an orthology mapping to convert human genes to mouse genes for the CytoTRACE 2 feature set. 
+
+    CytoTRACE 2 was developed over mouse and human data, and this package accepts data from either. If human data is provided (with ```species = 'human'``` specified), the algorithm will automatically perform an orthology mapping to convert human genes to mouse genes for the CytoTRACE 2 feature set. 
 
 3. **Should I normalize the data before running the main function?**
-No normalization is required, but any form of normalization preserving the relative rank of genes within each sample is acceptable. CytoTRACE 2 relies on gene ranks, so any such normalization will not influence results. For the UMAP plots produced by ```plotData```, the input expression is log-normalized unless the maximum value of the input expression matrix is less than 20.
+
+    There is no need to normalize data prior to running CytoTRACE 2, provided there are no missing values and all values are non-negative. The input needs to be **raw counts or CPM/TPM normalized counts, and should not be log-transformed**.
+    
+    For the UMAP plots produced by ```plotData```, if the input is not a Seurat object already containing UMAP and PCA embeddings, the input slot's expression is log-normalized internally unless the maximum value in the provided slot is less than 20.
 
 4. **What if I have multiple batches of data? Should I perform any integration?**
-No batch integration is required. Instead, we recommend running CytoTRACE 2 separately over each dataset. While raw predictions are made per cell without regard to the broader dataset, the postprocessing step to refine predictions  adjusts predictions using information from other cells in the dataset, and so may be impacted by batch effects. Note that CytoTRACE 2 outputs, except for CytoTRACE2_Relative, are calibrated to be comparable across datasets without further adjustment. Therefore, no integration is recommended over the predictions either. As for CytoTRACE2_Relative, it should not be compared across different runs, as it is based on the ranking and scaling of CytoTRACE2_Scores within the context of the specific input dataset. 
 
-
+    No batch integration is required. Instead, we recommend running CytoTRACE 2 separately over each dataset. While raw predictions are made per cell without regard to the broader dataset, the postprocessing step to refine predictions  adjusts predictions using information from other cells in the dataset, and so may be impacted by batch effects. Note that CytoTRACE 2 outputs, except for CytoTRACE2_Relative, are calibrated to be comparable across datasets without further adjustment. Therefore, no integration is recommended over the predictions either. As for CytoTRACE2_Relative, it should not be compared across different runs, as it is based on scaling of CytoTRACE2_Scores within the context of the specific input dataset. 
 
 5. **Do the R and Python packages produce equivalent output?**
-When run without batching (i.e., downsampling the input dataset into batches [or chunks] for parallel processing or to save memory), these packages produce equivalent output. When batching is performed, package outputs will vary, but remain highly correlated in practice.
 
+    When run without batching (i.e., downsampling the input dataset into batches [or chunks] for parallel processing or to save memory), these packages produce equivalent output. When batching is performed, package outputs will vary, but remain highly correlated in practice.
 
-</details>
+6. **What strategies are recommended for managing very large datasets (>100K cells) with CytoTRACE 2?**
+
+    For large datasets, subdividing the data into smaller segments, each containing up to 100,000 cells, is advisable. This division not only facilitates more efficient memory management and processing but also preserves the integrity of your analysis. Depending on the dataset’s characteristics, you can segment by experimental conditions (technical batches) or samples. Additionally, when choosing your subset size, please be mindful of the computational resources available to you--some systems may support ~100,000 cells while for others, a further reduced subset size may be preferable.
+
+7. **Why does the UMAP generated by CytoTRACE 2's `plotData` function differ from the cell embeddings saved in my input Seurat object, and how can I get them to match?**
+
+    If the input Seurat object already contains cell embeddings, those need to be accessible as `"pca"` and `"umap"` from `seurat_object@reductions` layer, and the `plotData` function will automatically use these embeddings for visualization. Make sure to have `is_seurat` set to `TRUE`.
+
+    Otherwise, the `plotData` function utilizes the `RunPCA` and `RunUMAP` functions to generate cell embeddings internally. `pc_dims` and `seed` parameters of the `plotData` function (corresponding to the `dims` and `seed.use` parameters in `RunUMAP`) can be tweaked to adjust the UMAP plot.
+      
+    ```R
+        # Example of setting pc_dims and seed in plotData
+        plotData(data_object, pc_dims = 15, seed = 42)
+    ```
+
+    If you have a different type/name of reduction (other than UMAP/umap) in your Seurat object that you would like to use for visualization, you can either rename it to "umap" or manually replace the embeddings on `plotData` output plots:
+
+      ```R
+      # Assuming 'data_object' contains the prefered cell embeddings in "tsne" reduction
+
+      emb_1 <- data_object@reductions$tsne@cell.embeddings[,1]  # First dimension
+      emb_2 <- data_object@reductions$tsne@cell.embeddings[,2]  # Second dimension
+
+      # Replace CytoTRACE 2 generated UMAP coordinates in the plot output
+      plots[["CytoTRACE2_UMAP"]][[1]][["data"]]["UMAP_1"] <- emb_1
+      plots[["CytoTRACE2_UMAP"]][[1]][["data"]]["UMAP_2"] <- emb_2
+      ```
+      Alternatively, you can use predicted values from `cytotrace2()` function and plot those directly on your prefered original plot, without using the `plotData()` function.
+
+8. **What if my dataset includes rare cell types?**
+
+    When analyzing phenotypes expected to have five or fewer cells in a given dataset (or KNN batch; see [__Extended usage details__](#extended-usage-details)), we recommend bypassing the KNN smoothing step so that predictions for these rare cells are not forced toward more abundant phenotypes. In practice, you can simply use the preKNN score output (preKNN_CytoTRACE2_Score) instead of the final KNN-smoothed value (CytoTRACE2_Score). This preserves the original predictions for rare cell types while still benefiting from the other postprocessing steps.
 
 </details>
 
@@ -629,11 +700,11 @@ When run without batching (i.e., downsampling the input dataset into batches [or
   - *R*: the subfolder of R scripts
     - *cytotrace2.R*: the main function that executes the pipeline from input to final predictions
     - *plotting.R*: plotting functions based on generated prediction and provided annotation file (if available)
-    - *postprocessing.R*: functions used for postprocessing (smoothing, binning, kNN smoothing) raw predicted values
+    - *postprocessing.R*: functions used for postprocessing (smoothing, binning, adaptive kNN smoothing) raw predicted values
     - *prediction.R*: functions used in the prediction part of the pipeline
-    - *preprocess.R*: functions used in loading and processing (orthology mapping, feature selection, feature ranking per cell) input data
+    - *preprocess.R*: functions used in loading and processing (orthology mapping, feature selection, feature ranking per cell, log2 CPM-transformation) of the input data
   - *inst/extdata*: the subfolder of files internally loaded and used in the pipeline, includes:
-    - model parameter matrices (.rds object containing learned parameters of full and reduced models)
+    - model parameter matrices (.rds objects containing learned parameters of all the ensemble models)
     - preselected feature set for the model
     - orthology mapping dictionary (human to mouse)
     - alias mapping dictionary (gene symbol to alias gene symbol)
@@ -653,7 +724,7 @@ When run without batching (i.e., downsampling the input dataset into batches [or
       - preselected feature set for the model
       - human and mouse orthology table from Ensembl
       - alias table from HGNC (gene symbol to alias gene symbol)
-      - two R scripts for postprocessing and plotting (smoothDatakNN.R and plot_cytotrace2_results.R), called from the main function.
+      - alias table from MGI (gene symbol to alias gene symbol)
     - *common*: the subfolder of utility functions used in the pipeline
   - *environment_py.yml*: conda environment file for creating a new environment with all the necessary packages.
   - *setup.py*: the file containing the package description
@@ -663,7 +734,7 @@ When run without batching (i.e., downsampling the input dataset into batches [or
 
 
 ## Authors
-CytoTRACE 2 was developed in the <a href="https://anlab.stanford.edu/" target="_blank">Newman Lab</a> by Jose Juan Almagro Armenteros, Minji Kang, Gunsagar Gulati, Rachel Gleyzer, Susanna Avagyan, and Erin Brown.
+CytoTRACE 2 was developed in the <a href="https://anlab.stanford.edu/" target="_blank">Newman Lab</a> by Minji Kang, Erin Brown, Jose Juan Almagro Armenteros, Gunsagar Gulati, Rachel Gleyzer, and Susanna Avagyan.
 
 ## Contact
 If you have any questions, please contact the CytoTRACE 2 team at cytotrace2team@gmail.com.
@@ -674,6 +745,6 @@ Please see the <a href="LICENSE" target="_blank">LICENSE</a> file.
 
 ## Citation
 If you use CytoTRACE 2, please cite: <br>
-Minji Kang*, Jose Juan Almagro Armenteros*, Gunsagar S. Gulati*, Rachel Gleyzer, Susanna Avagyan, Erin L. Brown, Wubing Zhang, Abul Usmani, Noah Earland, Zhenqin Wu, James Zou, Ryan C. Fields, David Y. Chen, Aadel A. Chaudhuri, Aaron M. Newman <br>
+Minji Kang*, Gunsagar S. Gulati*, Erin L. Brown*, Jose Juan Almagro Armenteros*, Rachel Gleyzer*, Zhen Qi*, Susanna Avagyan, Wubing Zhang, Chloé B. Steen, Jeremy D’Silva, Janella Schwab, Abul Usmani, Noah Earland, Zhenqin Wu, James Zou, Ryan C. Fields, David Y. Chen, Michael F. Clarke, Aadel A. Chaudhuri, and Aaron M. Newman <br>
 bioRxiv 2024.03.19.585637; doi: https://doi.org/10.1101/2024.03.19.585637 (preprint)
 

@@ -4,12 +4,14 @@
 \alias{BinaryEncoder}
 \title{Binary Encoder}
 \usage{
-BinaryEncoder(model_dict, ranked_data)
+BinaryEncoder(model_dict, ranked_data, log2_data)
 }
 \arguments{
 \item{model_dict}{The model dictionary containing layer_dictionaries of weights and parameters.}
 
 \item{ranked_data}{The input ranked data.}
+
+\item{log2_data}{The input log2 data.}
 }
 \value{
 A list containing the sample_size X layer_number sized prob_pred matrix of predicted probabilities and
@@ -20,5 +22,5 @@ This function generates predicted probabilities and predicted potency score of e
 by iterating over all layers of that model and aggregating results
 }
 \examples{
-encoded_output <- BinaryEncoder(model_dict, ranked_data)
+encoded_output <- BinaryEncoder(model_dict, ranked_data, log2_data)
 }

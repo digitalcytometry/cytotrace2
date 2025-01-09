@@ -4,12 +4,14 @@
 \alias{predictData}
 \title{Prediction}
 \usage{
-predictData(parameter_dict, ranked_data, parallelize_models, ncores)
+predictData(parameter_dict, ranked_data, log2_data, parallelize_models, ncores)
 }
 \arguments{
 \item{parameter_dict}{The ensemble parameter dictionary containing model_dictionaries of weights and parameters.}
 
 \item{ranked_data}{The input ranked data.}
+
+\item{log2_data}{The input log2 data.}
 
 \item{parallelize_models}{boolean value, if TRUE models of the ensemble will run on multiple threads}
 
@@ -26,6 +28,6 @@ to generate 1 categorical label and 1 continuous score value for each sample
 by aggregating results over all models and layers.
 }
 \examples{
-parameter_dict <- readRDS(system.file("extdata", "parameter_dict_17.rds", package = "CytoTRACE2"))
-predicted_df <- predictData(parameter_dict, ranked_data, parallelize_models = TRUE, ncores = 4)
+parameter_dict <- readRDS(system.file("extdata", "parameter_dict_19.rds", package = "CytoTRACE2"))
+predicted_df <- predictData(parameter_dict, ranked_data, log2_data, parallelize_models = TRUE, ncores = 4)
 }

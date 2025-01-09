@@ -20,7 +20,7 @@ Potency categories in the context of CytoTRACE 2 classify cells based on their d
 
 The predicted potency scores additionally provide a continuous measure of developmental potential, ranging from 0 (differentiated) to 1 (totipotent).
 
-Underlying this method is a novel, interpretable deep learning framework trained and validated across 31 human and mouse scRNA-seq datasets encompassing 28 tissue types, collectively spanning the developmental spectrum. 
+Underlying this method is a novel, interpretable deep learning framework trained and validated across 34 human and mouse scRNA-seq datasets encompassing 24 tissue types, collectively spanning the developmental spectrum. 
 
 This framework learns multivariate gene expression programs for each potency category and calibrates outputs across the full range of cellular ontogeny, facilitating direct cross-dataset comparison of developmental potential in an absolute space. 
 
@@ -63,6 +63,9 @@ Please note that the environment solve time may vary from system to system and m
   pip install .
 ```
 
+__Optional:__
+For faster data reading, you can optionally install `datatable` (e.g., `pip install datatable` or `conda install -c conda-forge datatable`) if your OS and environment support it. If not installed, the code will default to using `pandas` for reading input files.
+
 </details>
 
 
@@ -75,7 +78,7 @@ By default, CytoTRACE 2 requires only a single-cell gene expression file as inpu
 __scRNA-seq gene expression file:__
 - The table must be genes (rows) by cells (columns).
 - The first row must contain the single cell IDs and the first column must contain the gene names.
-- The gene expression data can be represented as raw or normalized counts, as long as normalization preserves relative ranking of input gene values within a cell.  
+- The gene expression data can be represented as raw or CPM/TPM normalized counts, but should not be log-transformed.  
 - No instances of duplicate gene or cell names should be present.
 
 <p align="center">
@@ -176,7 +179,7 @@ For each cell retained following quality control filtering, the CytoTRACE 2 pred
 
 
 2. *CytoTRACE2_Potency*: The final predicted cellular potency category following postprocessing. Possible values are ```Differentiated```, ```Unipotent```, ```Oligopotent```, ```Multipotent```, ```Pluripotent```, and ```Totipotent```. 
-3. *CytoTRACE2_Relative*: The predicted relative order of the cell, based on the absolute predicted potency scores, ranked and normalized to the range [0,1] (0 being most differentiated, 1 being least differentiated).
+3. *CytoTRACE2_Relative*: The predicted relative order of the cell, based on the absolute predicted potency scores, normalized to the range [0,1] (0 being most differentiated, 1 being least differentiated).
 4. *preKNN_CytoTRACE2_Score*: The cellular potency score predicted by the CytoTRACE 2 model before KNN smoothing (see 'binning' in the manuscript).
 5. *preKNN_CytoTRACE2_Potency*: The cellular potency category  predicted by the CytoTRACE 2 model before KNN smoothing (see 'binning' in the manuscript). Possible values are ```Differentiated```, ```Unipotent```, ```Oligopotent```, ```Multipotent```, ```Pluripotent```, and ```Totipotent```.
 
@@ -191,7 +194,7 @@ CytoTRACE 2 outputs are visualized by default in three plots depicting the UMAP 
 If a phenotype annotation file is provided, two additional plots will be produced.
 
 - **Phenotype UMAP**: a UMAP colored by phenotype annotation (*CytoTRACE2_Phenotype_UMAP.pdf*)
-- **Phenotype potency box plot**: a boxplot of predicted potency score separated by phenotype/group from the annotation file (*CytoTRACE2_box_plot_by_pheno*)
+- **Phenotype potency box plot**: a boxplot of predicted potency score separated by phenotype/group from the annotation file (*CytoTRACE2_box_plot_by_pheno.pdf*)
 
 </details>
 
@@ -201,8 +204,8 @@ If a phenotype annotation file is provided, two additional plots will be produce
 <details><summary>Expand section</summary>
 
 To illustrate use of CytoTRACE 2, we provide an example mouse pancreas dataset, originally from [Bastidas-Ponce et al., 2019](https://doi.org/10.1242/dev.173849), filtered to cells with known ground truth developmental potential and downsampled.
-- Pancreas_10x_downsampled_expression.txt: gene expression matrix for a scRNA-seq (10x Chromium) dataset encompassing 2280 cells from murine pancreatic epithelium (available to download [here](https://drive.google.com/uc?export=download&id=1egcC0NBl6gibBSJNO9on6VwHCvDacMfh)),
-- Pancreas_10x_downsampled_annotation.txt: phenotype annotations for the scRNA-seq dataset above (available to download [here](https://drive.google.com/uc?export=download&id=1uRsixzZSTed29qa0AwsHE6tUSodDVXm2)).
+- Pancreas_10x_downsampled_expression.txt: gene expression matrix for a scRNA-seq (10x Chromium) dataset encompassing 2280 cells from murine pancreatic epithelium (available to download [here](https://drive.google.com/file/d/11eI1gSBoBqn9ccvBbthZ2nPW3CENsKbT/view?usp=drive_link)),
+- Pancreas_10x_downsampled_annotation.txt: phenotype annotations for the scRNA-seq dataset above (available to download [here](https://drive.google.com/file/d/1UESeZJDl2qWYnSu0VQQA5igpEbtxZPgq/view?usp=drive_link)).
 
 After downloading these two files, we apply CytoTRACE 2 to this dataset as follows:
 
@@ -215,10 +218,10 @@ results =  cytotrace2("Pancreas_10x_downsampled_expression.txt",
 
 ```
 
-Expected prediction output, dataframe ```results``` looks as shown below (can be downloaded from [here](./cytotrace2_r/inst/extdata/Vignette1_prediction_results.csv)):
+Expected prediction output, dataframe ```results``` looks as shown below (can be downloaded from [here]((https://drive.google.com/file/d/13gdepThDjpxFh-EByta52cLDovLxU8YI/view?usp=drive_link)):
 
 <p align="center">
-    <img width="600" src="images_py/Vignette1_predictions.png">
+    <img width="600" src="images_py/Vignette1_results.png">
 </p>
 
 
@@ -232,15 +235,15 @@ This dataset contains cells from 4 different embryonic stages of a murine pancre
 - Alpha, Beta, Delta, and Epsilon cells
 
 <p align="center">
-        <img width="600" src="images_py/Vignette1_phenotype_umap.png">
+        <img width="600" src="images_py/Vignette1_phenotype_UMAP.png">
 </p>
 
 Each of these cell types is at a different stage of development, with progenitors and precursors having varying potential to differentiate into other cell types, and mature cells having no potential for further development. We use CytoTRACE 2 to predict the absolute developmental potential of each cell, which we term as "potency score", as a continuous value ranging from 0 (differentiated) to 1 (stem cells capable of generating an entire multicellular organism). The discrete potency categories that the potency scores cover are ```Differentiated```, ```Unipotent```, ```Oligopotent```, ```Multipotent```, ```Pluripotent```, and ```Totipotent```.
 
 In this case, we would expect to see:
-- close to 0 potency scores alpha, beta, delta, and epsilon cells as those are known to be differentiated, 
-- scores in the higher mid-range for multipotent pancreatic progenitors as those are known to be multipotent, 
-- for endocrine progenitors, precursors and immature cells, the ground truth is not unique, but is in the range for unipotent category. So we would expect to see scores in the lower range for these cells, closer to differentiated.
+- potency scores close to 0 for alpha, beta, delta, and epsilon cells as these are known to be differentiated
+- scores in the higher mid-range for multipotent pancreatic progenitors as these are known to be multipotent
+- scores in the lower range for endocrine progenitors, precursors and immature cells; the ground truth is not unique, but is in the range for unipotent category
 
 Visualizing the results we can directly compare the predicted potency scores with the known developmental stage of the cells, seeing how the predictions meticulously align with the known biology. Take a look!
 
@@ -252,8 +255,8 @@ Visualizing the results we can directly compare the predicted potency scores wit
 
 <div align="center">
   <div style="display: flex; justify-content: space-around;">
-    <img width="400" src="images_py/Vignette1_potency_score_umap.png">
-    <img width="400" src="images_py/Vignette1_ground_truth_umap_with_pheno.png">
+    <img width="470" src="images_py/Vignette1_potency_score_UMAP.png">
+    <img width="400" src="images_py/Vignette1_ground_truth_relative_order_UMAP.png">
   </div>
 </div>
 
@@ -266,30 +269,30 @@ Visualizing the results we can directly compare the predicted potency scores wit
     - ***Potency score distribution by phenotype***
     <br> A boxplot of predicted potency score separated by phenotype/group from the annotation file. Can be used to assess the distribution of predicted potency scores across different cell phenotypes. <br>
       ```bash
-      plots/CytoTRACE2_box_plot_by_phenotype.pdf
+      plots/CytoTRACE2_potency_score_by_phenotype.pdf
       ```
 
       <p align="center">
-        <img width="600" src="images_py/Vignette1_potencyBoxplot_byPheno.png">
+        <img width="600" src="images_py/Vignette1_potency_score_by_phenotype.png">
       </p>
 
 
     - ***Potency category***
     <br> The UMAP embedding plot of predicted potency category reflects the discrete classification of cells into potency categories, taking possible values of ```Differentiated```, ```Unipotent```, ```Oligopotent```, ```Multipotent```, ```Pluripotent```, and ```Totipotent```. <br>
       ```bash
-      plots/CytoTRACE2_Potency_UMAP.pdf
+      plots/CytoTRACE2_potency_category_UMAP.pdf
       ```
       <p align="center">
-        <img width="600" src="images_py/Vignette1_potency_category_umap.png">
+        <img width="600" src="images_py/Vignette1_potency_category_UMAP.png">
       </p>
 
     - ***Relative order***
     <br> UMAP embedding of predicted relative order, which is based on absolute predicted potency scores normalized to the range 0 (more differentiated) to 1 (less differentiated). Provides the relative ordering of cells by developmental potential <br>
       ```bash
-      plots/CytoTRACE2_Relative_UMAP.pdf
+      plots/CytoTRACE2_relative_order_UMAP.pdf
       ```
       <p align="center">
-        <img width="600" src="images_py/Vignette1_rel_order_umap.png">
+        <img width="600" src="images_py/Vignette1_relative_order_UMAP.png">
       </p>
 
     - ***Phenotypes***
@@ -298,7 +301,7 @@ Visualizing the results we can directly compare the predicted potency scores wit
       plots/CytoTRACE2_phenotype_UMAP.pdf
       ```
       <p align="center">
-        <img width="620" height = "400" src="images_py/Vignette1_phenotype_umap.png">
+        <img width="620" height = "400" src="images_py/Vignette1_phenotype_UMAP.png">
       </p>
 </details>
 
@@ -311,7 +314,6 @@ Visualizing the results we can directly compare the predicted potency scores wit
 Key notes:
 
 - By default, CytoTRACE 2 expects mouse data. To provide human data, users should specify ```species = "human"```
-- By default, CytoTRACE 2 uses a reduced ensemble of 5 models for prediction. To use the full ensemble of 17 models, users should specify ```full_model = TRUE```. More information about the reduced and full model ensembles can be found in the [__About the ensemble model__](#about-the-ensemble-model) section below.
 
 More details on expected function input files and output objects can be found in [__Input Files__](#input-files) and [__CytoTRACE 2 outputs__](#cytotrace-2-outputs) sections above.
 
@@ -324,92 +326,107 @@ Optional arguments:
 - *annotation_path*: A filepath to a .txt file containing phenotype annotations corresponding to the cells of the scRNA-seq expression matrix
 - *species*: String indicating the species name for the gene names in the input data
 (options: **"human"** or **"mouse"**, default is **"mouse"**).
-- *full_model*: Flag indicating whether to predict based on the full ensemble of 17 models
-or a reduced ensemble of 5 most predictive models (default is **FALSE**, or absent for the command line).
-- *batch_size*: Integer indicating the number of cells to subsample for the pipeline steps (default is **10000**; recommended for input data size > 10K cells).
+- *batch_size*: Integer indicating the number of cells to process at once for the pipeline steps, including subsampling for KNN smoothing (default is **10000**).
 - *smooth_batch_size*: Integer indicating the number of cells to subsample further
-within the batch_size for the smoothing step of the pipeline
-(default is **1000**; recommended for input data size > 1K cells).
+within the batch_size for the smoothing by diffusion step of the pipeline
+(default is **1000**).
 - *disable_parallelization*: Flag indicating whether to disable parallelization (default is **FALSE**, or absent for the command line).
-- *max_cores*: Integer indicating user-provided restriction on the maximum number of CPU cores to use for parallelization (default is **None**, and the number of cores used will then be determined based on system capacity).
-- *max_pcs*: Integer indicating the maximum number of principal components to use
-in the smoothing by kNN step (default is **200**).
+- *disable_plotting*: Flag indicating whether to disable plotting (default is **FALSE**, or absent for the command line). To plot results, data are reprocessed following the core CytoTRACE 2 pipeline to produce UMAP embeddings via a standard scanpy pipeline. As this step can be time-consuming, we provide the option to disable it if desired.
+- *max_cores*: Integer indicating user-provided restriction on the maximum number of CPU cores to use for parallelization (default is **None**, and the number of cores used will then be determined based on system capacity; when running on computers with less than 16GB memory, we recommend reducing it to 1 or 2 to avoid memory issues.).
 - *seed*: Integer specifying the seed for reproducibility in random processes (default is **14**).
 - *output_dir*: Path to the directory to which to save CytoTRACE 2 outputs (default is **cytotrace2_results** in the current working directory).
 
 Information about these arguments is also available in the function's manual, which can be accessed by running ```cytotrace2 -h``` from the command line.
 
-A typical snippet to run the function within Python with full argument specification on a file path containing human data using the full model ensemble: 
+A typical snippet to run the function within Python with full argument specification on a file path containing human data: 
 
 ```python
-result <- cytotrace2("path/to/input/cell_expression.txt",
-                       annotation_path = "path/to/input/cell_annotations.txt"
-                       species = "mouse",
-                       full_model = True,
+result = cytotrace2("path/to/input/cell_expression.txt",
+                       annotation_path = "path/to/input/cell_annotations.txt",
+                       species = "human",
                        batch_size = 10000,
                        smooth_batch_size = 1000,
-                       disable_parallelization = True,
+                       disable_plotting = False,
+                       disable_parallelization = False,
                        max_cores = None,
-                       max_pcs = 200,
                        seed = 14)               
 ```
 
 For the command line, this snippet takes the form:
 
-```python
+```bash
 cytotrace2 --input-path path/to/input/cell_expression.txt \
               --annotation-path /path/to/input/cell_annotations.txt \
-              --species mouse \
-              --full-model \
+              --species human \
               --batch-size 10000 \
               --smooth-batch-size 1000 \
-              --disable-parallelization \
-              --max-pcs 200 \
               --seed 14 \
               --output-dir /path/to/save/results
 ```
 
 Or with more condensed parameter names: 
 
-```python
+```bash
 cytotrace2 --f path/to/input/cell_expression.txt \
               --a /path/to/input/cell_annotations.txt \
-              --sp mouse \
+              --sp human \
               --fm \
-              --bs 5000 \
+              --bs 10000 \
               --sbs 1000 \
-              --dp \
-              --mpc 200 \
               --r 14 \
               --o /path/to/save/results
 ```
 
-**NOTE**: To reproduce the results in the manuscript, use the following parameters: 
+To run the same snippet but disabling parallelization and plotting, you would run the following within Python:
+
 ```python
-    full_model = True
-    batch_size = 100000
-    smooth_batch_size = 10000
-    max_pcs = 200
-    seed = 14
+result = cytotrace2("path/to/input/cell_expression.txt",
+                       annotation_path = "path/to/input/cell_annotations.txt",
+                       species = "human",
+                       batch_size = 10000,
+                       smooth_batch_size = 1000,
+                       disable_plotting = False,
+                       disable_parallelization = False,
+                       max_cores = None,
+                       seed = 14)               
 ```
 
-### About the ensemble model
-<details><summary>Expand section</summary>
+and the following from the command line:
 
-Users can choose to predict based on the full ensemble of 17 models, or a reduced ensemble of 5 models, which are selected based on their high correlation (according to Concordance correlation coefficient (CCC)) with the predictions of the full model. This flexibility allows users to balance computational efficiency with predictive accuracy, tailoring the analysis to their specific needs and dataset characteristics. 
+```bash
+cytotrace2 --input-path path/to/input/cell_expression.txt \
+              --annotation-path /path/to/input/cell_annotations.txt \
+              --species human \
+              --batch-size 10000 \
+              --smooth-batch-size 1000 \
+              --seed 14 \
+              --disable-plotting \
+              --disable-parallelization \
+              --output-dir /path/to/save/results
+```
 
+or:
 
-The selection of the members of the reduced ensemble is done as follows: initially, predictions are generated for the training cohort using pairs of models from all possible combinations of the 17 models. The pair that exhibits the highest CCC with the predictions of the full model is then selected and validated on the test cohort. Subsequently, this selected pair is fixed, and all other models are tested as potential candidates for a 3rd model in the ensemble. The process is iteratively repeated, adding a 4th and 5th model, ultimately arriving at the top 5 models that collectively offer optimal predictive performance. This robust methodology ensures that the reduced ensemble maintains a high correlation with the full model.
+```bash
+cytotrace2 --f path/to/input/cell_expression.txt \
+              --a /path/to/input/cell_annotations.txt \
+              --sp human \
+              --fm \
+              --bs 10000 \
+              --sbs 1000 \
+              --r 14 \
+              --dpl \
+              --dpa \
+              --o /path/to/save/results
+```
 
-  <p align="center">
-      <img width="600" src="images_py/reduced_model.png">
-  </p>
-
-
+**NOTE**: To reproduce the results in the manuscript, please be sure to use the following parameters: 
+```python
+    batch_size = 100000
+    smooth_batch_size = 10000
+    seed = 14
+```
 </details>
-
-</details>
-
 
 ## Under the hood 
 
@@ -419,7 +436,7 @@ Underlying CytoTRACE 2 is a novel deep learning framework designed to handle the
 <p align="center">
     <img width="700" src="images_py/BNN_schematic.png">
 </p>
-Following initial prediction by the core model, CytoTRACE 2 implements a postprocessing step to leverage the information across transcriptionally similar cells to smooth potency score and correct potency category outliers using a combination of Markov diffusion and k-nearest neighbor smoothing. 
+Following initial prediction by the core model, CytoTRACE 2 implements a postprocessing step to leverage the information across transcriptionally similar cells to smooth potency score and correct potency category outliers using a combination of Markov diffusion and adaptive nearest neighbor smoothing. 
 <!-- For more details about the CytoTRACE 2 method, please see the [_associated publication_](#Citation). -->
 
 </details>
@@ -444,17 +461,19 @@ CytoTRACE 2 classifies cells into six potency categories:
 CytoTRACE 2 was developed over mouse and human data, and this package accepts data from either. If human data is provided (with ```species = 'human'``` specified), the algorithm will automatically perform an orthology mapping to convert human genes to mouse genes for the CytoTRACE 2 feature set. 
 
 3. **Should I normalize the data before running the main function?**
-No normalization is required, but any form of normalization preserving the relative rank of genes within each sample is acceptable. CytoTRACE 2 relies on gene ranks, so any such normalization will not influence results. For the UMAP plots produced by ```plotData```, the input expression is log-normalized unless the maximum value of the input expression matrix is less than 20.
+No normalization is required, but either raw counts or CPM/TPM data are acceptable. However, data should *not* be log-transformed.
 
 4. **What if I have multiple batches of data? Should I perform any integration?**
-No batch integration is required. Instead, we recommend running CytoTRACE 2 separately over each dataset. While raw predictions are made per cell without regard to the broader dataset, the postprocessing step to refine predictions  adjusts predictions using information from other cells in the dataset, and so may be impacted by batch effects. Note that CytoTRACE 2 outputs are calibrated to be comparable across datasets without further adjustment, so no integration is recommended over the predictions either.
+No batch integration is required. Instead, we recommend running CytoTRACE 2 separately over each dataset. While raw predictions are made per cell without regard to the broader dataset, the postprocessing step to refine predictions adjusts predictions using information from other cells in the dataset, and so may be impacted by batch effects. Note that CytoTRACE 2 outputs are calibrated to be comparable across datasets without further adjustment, so no integration is recommended over the predictions either.
 
 5. **Do the R and Python packages produce equivalent output?**
-When run without batching (i.e., downsampling the input dataset into batches [or chunks] for parallel processing or to save memory), these packages produce equivalent output. When batching is performed, package outputs will vary, but remain highly correlated in practice.
+When run without batching (i.e., downsampling the input dataset into batches [or chunks] for parallel processing or to save memory), these packages produce equivalent output. When batching is performed, package outputs will vary, but remain highly correlated in practice. Please note that processing for UMAP embeddings is implemented via a standard Seurat pipeline for the R package and a standard scanpy pipeline for the Python package. As a result, UMAP embeddings will differ between packages, even when predicted potency scores match exactly.
 
+6. **What if my dataset has rare cell types?**
+CytoTRACE 2 implements an adaptive nearest neighbor smoothing step as the final component of postprocessing. When analyzing phenotypes expected to have five or fewer cells, we recommend bypassing the KNN smoothing step so that predictions for these rare cells are not forced toward more abundant phenotypes. In practice, you can simply use the preKNN score output (preKNN_CytoTRACE2_Score) instead of the final KNN-smoothed value (CytoTRACE2_Score).
 </details>
 
-</details>
+
 
 
 
@@ -463,7 +482,7 @@ When run without batching (i.e., downsampling the input dataset into batches [or
 
 
 ## Authors
-CytoTRACE 2 was developed in the <a href="https://anlab.stanford.edu/" target="_blank">Newman Lab</a> by Jose Juan Almagro Armenteros, Minji Kang, Gunsagar Gulati, Rachel Gleyzer, Susanna Avagyan, and Erin Brown.
+CytoTRACE 2 was developed in the <a href="https://anlab.stanford.edu/" target="_blank">Newman Lab</a> by Minji Kang, Erin Brown, Jose Juan Almagro Armenteros, Gunsagar Gulati, Rachel Gleyzer, and Susanna Avagyan.
 
 ## Contact
 If you have any questions, please contact the CytoTRACE 2 team at cytotrace2team@gmail.com.
@@ -474,6 +493,6 @@ Please see the <a href="../LICENSE" target="_blank">LICENSE</a> file.
 
 ## Citation
 <!-- If you use CytoTRACE 2, please cite: -->
-Kang M*, Armenteros JJA*, Gulati GS*, Gleyzer R, Avagyan S, Brown EL, Zhang W, Usmani AS, Earland H, Wu Z, Zou J, Fields RC, Chen DY, Chaudhuri AA, Newman AM (2024) Mapping single-cell developmental potential in health and disease with interpretable deep learning (Submitted).
-
+Minji Kang*, Gunsagar S. Gulati*, Erin L. Brown*, Jose Juan Almagro Armenteros*, Rachel Gleyzer*, Zhen Qi*, Susanna Avagyan, Wubing Zhang, Chloé B. Steen, Jeremy D’Silva, Janella Schwab, Abul Usmani, Noah Earland, Zhenqin Wu, James Zou, Ryan C. Fields, David Y. Chen, Michael F. Clarke, Aadel A. Chaudhuri, and Aaron M. Newman. Mapping single-cell developmental potential in health and disease with interpretable deep learning.
+bioRxiv 2024.03.19.585637; doi: https://doi.org/10.1101/2024.03.19.585637 (preprint)
 

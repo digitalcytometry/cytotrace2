@@ -4,12 +4,14 @@
 \alias{BinaryModule}
 \title{Binary Module}
 \usage{
-BinaryModule(layer_dict, ranked_data, eps = 1e-05)
+BinaryModule(layer_dict, x_rank, x_log2, eps = 1e-05)
 }
 \arguments{
 \item{layer_dict}{The layer dictionary containing weights and parameters.}
 
-\item{ranked_data}{The input ranked data.}
+\item{x_rank}{The input ranked data.}
+
+\item{x_log2}{The input log2 data.}
 
 \item{eps}{The epsilon value for numerical stability in calculations (default: 1e-05).}
 }
@@ -20,5 +22,5 @@ A list containing the calculated matrix R_all before batch normalization and the
 This function generates predictions for each layer using the input parameter dictionary for a given layer
 }
 \examples{
-output <- BinaryModule(layer_dict, ranked_data)
+output <- BinaryModule(layer_dict, x_rank, x_log2)
 }

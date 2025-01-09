@@ -8,9 +8,9 @@ smoothData(
   mat,
   predicted_df,
   top_genes,
-  parallelize_smoothing,
   ncores,
   smooth_batch_size,
+  parallelize_smoothing,
   seed
 )
 }
@@ -22,11 +22,11 @@ and predicted potency category for each cell (CytoTRACE2 model predicted values 
 
 \item{top_genes}{list of the top 1000 most variable genes (output of dispersion function)}
 
-\item{parallelize_smoothing}{Logical, whether to run the function on subsamples in parallel on multiple threads (default is TRUE).}
-
 \item{ncores}{integer indicating the number of cores to utilize}
 
 \item{smooth_batch_size}{integer indicating the number of cells to subsample}
+
+\item{parallelize_smoothing}{Logical, whether to run the function on subsamples in parallel on multiple threads (default is TRUE).}
 
 \item{seed}{Integer, specifying the seed for reproducibility in random processes (default is 14).}
 }

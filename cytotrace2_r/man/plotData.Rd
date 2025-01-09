@@ -9,6 +9,7 @@ plotData(
   annotation = NULL,
   expression_data = NULL,
   is_seurat = FALSE,
+  slot_type = "counts",
   pc_dims = 30,
   seed = 14
 )
@@ -23,7 +24,11 @@ Has rownames which are single cell IDs as in expression data, and at least 1 col
 \item{expression_data}{Dataframe, expression data to be used for plotting
 If cytotrace2 is a Seurat object and is_seurat = TRUE, can be left NULL (default is NULL).}
 
-\item{is_seurat}{Logical, indicating whether the input is a Seurat object (default is FALSE).}
+\item{is_seurat}{Logical, indicating whether the input is a Seurat object (default is FALSE). 
+If TRUE and Seurat object contains PCA and UMAP embeddings, those will be automatically used for visualization, otherwise, PCA and UMAP will be calculated.}
+
+\item{slot_type}{Character, indicating the type of slot to access from "RNA" assay if provided is a Seurat object &
+is_seurat = TRUE. Can be 'counts' or 'data' (default is 'counts')}
 
 \item{pc_dims}{The number of principal components to use for UMAP visualization (default: 30).}
 

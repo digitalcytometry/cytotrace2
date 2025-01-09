@@ -14,19 +14,16 @@
 #' is_seurat = TRUE. Can be 'counts' or 'data' (default is 'counts')
 #' @param parallelize_smoothing Logical, indicating whether to run the smoothing function
 #' on subsamples in parallel on multiple threads (default is TRUE).
-#' @param full_model Logical, indicating whether to predict based on the full ensemble of 17 models
-#' or a reduced ensemble of 5 most predictive models (default is FALSE).
 #' @param parallelize_models Logical, indicating whether to run the prediction function on
 #' models in parallel on multiple threads (default is TRUE).
 #' @param ncores Integer, indicating the number of cores to utilize when parallelize_models
 #' and/or parallelize_smoothing are TRUE (default is NULL, pipeline detects the number of
-#' available cores and runs on that number; for Windows, it will be set to 1).
-#' @param batch_size Integer or NULL, indicating the number of cells to subsample for the pipeline steps.
-#'  No subsampling if NULL.(default is 10000, recommended value for input data size > 10K cells).
+#' available cores and runs on half of them; for Windows, it will be set to 1).
+#' @param batch_size Integer or NULL, indicating the number of cells to processat once, including subsampling 
+#' for KNN smoothing. No subsampling if NULL.(default is 10000, recommended value for input data size > 10K cells).
 #' @param smooth_batch_size Integer or NULL, indicating the number of cells to subsample further
-#' within the batch_size for the smoothing step of the pipeline. No subsampling if NULL.
+#' within the batch_size for the smoothing by diffusion step of the pipeline. No subsampling if NULL.
 #' (default is 1000, recommended value for input data size > 1K cells).
-#' @param max_pcs Integer, indicating the maximum number of principal components to use in the smoothing by kNN step (default is 200).
 #' @param seed Integer, specifying the seed for reproducibility in random processes (default is 14).
 #'
 #' @return If `is_seurat` is FALSE, the function returns a dataframe containing predicted
@@ -68,7 +65,7 @@
 #' Link to the publication will be added upon being published
 #'
 #' @author
-#' Minji Kang, Jose Juan Almagro Armenteros, Gunsagar Gulati, Rachel Gleyzer, Erin Brown and Susanna Avagyan.
+#' Minji Kang, Erin Brown, Jose Juan Almagro Armenteros, Gunsagar Gulati, Rachel Gleyzer, and Susanna Avagyan.
 #'
 #' @section 
 #' [LICENSE]](https://github.com/digitalcytometry/cytotrace2/blob/master/LICENSE).
@@ -81,22 +78,20 @@ cytotrace2 <- function(input,
                        species = "mouse",
                        is_seurat = FALSE,
                        slot_type = "counts",
-                       full_model = FALSE,
                        batch_size = 10000,
                        smooth_batch_size = 1000,
                        parallelize_models = TRUE,
                        parallelize_smoothing = TRUE,
                        ncores = NULL,
-                       max_pcs = 200,
                        seed = 14) {
 
 
   set.seed(seed)
 
   message('cytotrace2: Started loading data')
-  
+
   # if input is Seurat object but the is_seurat is not set to TRUE
-  if (class(input) == "Seurat" & is_seurat == FALSE) {
+  if (class(input)[1] == "Seurat" & is_seurat == FALSE) {
     stop("The input is a Seurat object. Please make sure to set is_seurat = TRUE.")
   }
 
@@ -106,21 +101,35 @@ cytotrace2 <- function(input,
     } else {
       seurat <- readRDS(input)
       data <- loadData_fromSeurat(seurat, slot_type)
-    } } else {
-      if (is_seurat == FALSE) { # check if the provided is a seurat object
-        data <- copy(input)
-      } else {
-        seurat <- copy(input)
-        data <- loadData_fromSeurat(input, slot_type)
-      }
+    } 
+  } else {
+    if (is_seurat == FALSE) { # check if the provided is a seurat object
+      data <- copy(input)
+    } else {
+      seurat <- copy(input)
+      data <- loadData_fromSeurat(input, slot_type)
     }
+  }
+  
+  # check if the input corresponds to expected criteria
+  # check for uniqueness of cell and gene names
+  if (any(duplicated(rownames(data)))) {
+    stop("Please make sure the gene names are unique")
+  }
   
   if (any(duplicated(colnames(data)))) {
     stop("Please make sure the cell/sample names are unique")
   }
-  
-  if (any(duplicated(rownames(data)))) {
-    stop("Please make sure the gene names are unique")
+
+  # check for the format of the input
+  if (!is.data.frame(data)) {
+   message("The function expects an input of type 'data.frame' with gene names as row names and cell IDs as column names.\nAttempting to convert the provided input to the required format.")
+   data <- as.data.frame(data)
+  }
+
+  # check if rownames are gene names (numbers as characters are not allowed)
+  if (!all(grepl("[a-zA-Z]", rownames(data)))) {
+    warning("The rownames of the input data are numeric. Please make sure the rownames are gene names.")
   }
   
   message("Dataset contains ", dim(data)[1], " genes and ", dim(data)[2], " cells.")
@@ -137,7 +146,9 @@ cytotrace2 <- function(input,
     warning("Species is most likely mouse. Please revise the 'species' input to the function.")
   }
   
-  
+  if (max(data) < 20) {
+      warning("It looks like your data may already be log-transformed. Please provide an untransformed expression matrix of raw counts or CPM/TPM normalized counts.")
+  }
 
   # if user doesn't want to split into batches
   if (is.null(batch_size)) {
@@ -161,7 +172,7 @@ cytotrace2 <- function(input,
       message("Windows OS can run only on 1 core")
     } else {
       if (is.null(ncores)) {
-        ncores <- parallel::detectCores(all.tests = FALSE, logical = TRUE) - 1
+        ncores <- max(1, parallel::detectCores(all.tests = FALSE, logical = TRUE) %/% 2)
       }
     }
   } else {
@@ -185,43 +196,43 @@ cytotrace2 <- function(input,
   init_order <- colnames(data)
 
   # generating subsamples
-  chunk <- round(ncol(data) / batch_size)
-  subsamples <- split(seq_len(ncol(data)), sample(factor(seq_len(ncol(data)) %% chunk)))
+  chunk <- ceiling(ncol(data) / batch_size)
+  if (chunk > 1) {
+    subsamples <- split(seq_len(ncol(data)), sample(factor(seq_len(ncol(data)) %% chunk)))
+  } else {
+    # No shuffling: return all columns in one group, preserving order
+    subsamples <- list(seq_len(ncol(data)))
+  }
   sample_names <- lapply(subsamples, function(x) colnames(data)[x])
 
   message('cytotrace2: Running on ', chunk, " subsample(s) approximately of length " , batch_size)
 
-  # reading preconstructed model weights
-  if (full_model) {
-    parameter_dict <-
-      readRDS(system.file("extdata", "parameter_dict_17.rds",
-                          package = "CytoTRACE2"))
+  parameter_dict <- readRDS(system.file("extdata", "parameter_dict_19.rds", package = "CytoTRACE2"))
+  # B <- readRDS(system.file("extdata", "B_background.rds", package = "CytoTRACE2"))
 
-  } else {
-    parameter_dict <-
-      readRDS(system.file("extdata", "parameter_dict_5_best.rds",
-                          package = "CytoTRACE2"))
-  }
+  nc <- ncores
 
-  nc <- min(length(parameter_dict), ncores)
   # composite function to preprocess and predict each subsample
-  subsample_processing_f <-   function(subsample) {
+  subsample_processing_f <-  function(subsample) {
     dt <- data[,subsample]
     message('cytotrace2: Started preprocessing.')
     # preprocessing
-    ranked_data <- preprocessData(dt, species)
+    input_data <- preprocessData(dt, species)
+    ranked_data <- input_data[[1]]
+    log2_data <- input_data[[2]] 
+    count_cells_few_genes <- input_data[[3]]
+
     gene_names <- colnames(ranked_data)
     cell_names <- rownames(ranked_data)
-    
     message('cytotrace2: Started prediction.')
     # predicting
     predicted_df <-
-      predictData(parameter_dict, ranked_data, parallelize_models, ncores = nc)
+      predictData(parameter_dict, ranked_data, log2_data, parallelize_models, ncores = nc)
+
     predicted_df <- predicted_df[cell_names,]
-    
     # calculating top 1000 most variable genes
-    num_genes <- ncol(ranked_data)
-    dispersion_index <- sapply(1:num_genes, function(i) disp_fn(ranked_data[, i]))
+    num_genes <- ncol(log2_data)
+    dispersion_index <- sapply(1:num_genes, function(i) disp_fn(log2_data[, i]))
     top_genes <- gene_names[order(dispersion_index, decreasing = TRUE)[1:min(1000, num_genes)]]
     # top_genes <- colnames(ranked_data)[top_genes_idx]
     
@@ -229,7 +240,7 @@ cytotrace2 <- function(input,
     # smoothing
     smoothScore <-
       smoothData(
-        ranked_data,
+        log2_data,
         predicted_df,
         top_genes,
         ncores = ncores,
@@ -237,12 +248,12 @@ cytotrace2 <- function(input,
         parallelize_smoothing = parallelize_smoothing,
         seed = seed
       )
-    
+
     smoothScore <- smoothScore[cell_names]
     predicted_df$preKNN_CytoTRACE2_Score <- smoothScore
 
     # running postprocessing
-    if (nrow(ranked_data) <= 10) {
+    if (nrow(log2_data) <= 10) {
       message('cytotrace2: Number of cells in data is less than 10. Skipping postprocessing.')
       predicted_df$CytoTRACE2_Potency <- predicted_df$preKNN_CytoTRACE2_Potency
       predicted_df$CytoTRACE2_Score <- predicted_df$preKNN_CytoTRACE2_Score
@@ -253,48 +264,58 @@ cytotrace2 <- function(input,
       predicted_df <- binData(predicted_df)
       predicted_df <- predicted_df[cell_names,]
 
-
-      if (nrow(ranked_data) <= 100)  {
+      if (nrow(log2_data) <= 100)  {
         message('cytotrace2: Number of cells in data is less than 100. Skipping kNN smoothing.')
         predicted_df$CytoTRACE2_Potency <- predicted_df$preKNN_CytoTRACE2_Potency
         predicted_df$CytoTRACE2_Score <- predicted_df$preKNN_CytoTRACE2_Score
       }
-      if (sd(ranked_data) == 0) {
+      if (sd(log2_data) == 0) {
         message('cytotrace2: Zero variance of ranked matrix. Skipping kNN smoothing.')
         predicted_df$CytoTRACE2_Potency <- predicted_df$preKNN_CytoTRACE2_Potency
         predicted_df$CytoTRACE2_Score <- predicted_df$preKNN_CytoTRACE2_Score
       }
-      if (nrow(ranked_data) > 100 && sd(ranked_data) != 0) {
+      if (nrow(log2_data) > 100 && sd(log2_data) != 0) {
         # message('cytotrace2: Started postprocessing: Smoothing by kNN')
-        ranked_df <- data.frame(base::t(ranked_data))
-        rownames(ranked_df) <- gene_names
-        colnames(ranked_df) <- cell_names
-        predicted_df <- smoothDatakNN(ranked_df,
+
+        predicted_df <- smoothDatakNN(log2_data,
                                       predicted_df,
-                                      top_genes,
-                                      max_pcs,
-                                      seed)
+                                      seed,
+                                      ncores)
         predicted_df <- predicted_df[cell_names,]
       }
     }
 
-
-    predicted_df
+    list(
+      predicted_df = predicted_df,
+      count_cells_few_genes = count_cells_few_genes
+    )
 
   }
 
   message('cytotrace2: Started running on subsample(s). This will take a few minutes.')
 
   results <- lapply(subsamples,subsample_processing_f)
-
-  predicted_df <- do.call(rbind, results)
+  
+  all_counts <- sapply(results, `[[`, "count_cells_few_genes")
+  all_count_cells_few_genes <- sum(all_counts)
+  frac_cells_few_genes <- all_count_cells_few_genes / ncol(data)
+  if (frac_cells_few_genes >= 0.2) {
+    warning(sprintf(
+      "WARNING: %.2f%% of input cells express fewer than %d genes. 
+    For best results, a minimum gene count of 500-1000 is recommended. 
+    Please see FAQ for guidelines at https://github.com/digitalcytometry/cytotrace2#frequently-asked-questions",
+      frac_cells_few_genes * 100, 500
+    ))
+  }
+  
+  predicted_dfs <- lapply(results, `[[`, "predicted_df")
+  predicted_df <- do.call(rbind, predicted_dfs)
   rownames(predicted_df) <- unlist(sample_names)
   predicted_df <- predicted_df[init_order,]
 
   # add relative score
-  ranked_scores <- rank(predicted_df$CytoTRACE2_Score)
-  predicted_df$CytoTRACE2_Relative <- (ranked_scores - min(ranked_scores)) / (max(ranked_scores) - min(ranked_scores))
-  
+  # ranked_scores <- rank(predicted_df$CytoTRACE2_Score)
+  predicted_df$CytoTRACE2_Relative <- (predicted_df$CytoTRACE2_Score - min(predicted_df$CytoTRACE2_Score)) / (max(predicted_df$CytoTRACE2_Score) - min(predicted_df$CytoTRACE2_Score))
   predicted_df <- predicted_df[c("CytoTRACE2_Score", "CytoTRACE2_Potency" , "CytoTRACE2_Relative", "preKNN_CytoTRACE2_Score",  "preKNN_CytoTRACE2_Potency")]
   
   

@@ -19,3 +19,4 @@ dependencies:
   - r-plyr=1.8.9
   - r-stringr=1.5.0
   - r-Rfast=2.0.8
+  - r-rspectra=0.16.1

@@ -1,4 +1,6 @@
 import concurrent.futures
+import anndata as ad
+import scanpy as sc
 import sys
 import os
 import math
@@ -8,9 +10,19 @@ import torch
 import scipy
 import random
 import warnings
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, scale
+from sklearn.decomposition import PCA
+from sklearn.metrics import pairwise_distances
 import pkg_resources
 from cytotrace2_py.common import models
+
+
+use_dt = True
+try:
+    import datatable as dt
+except ImportError as e:
+    use_dt = False
+    pass
 
 # functions for one-to-one best match mapping of orthology
 def top_hit_human(x):
@@ -20,35 +32,39 @@ def top_hit_mouse(x):
     r = x.sort_values('%id. query gene identical to target Mouse gene')
     return r.iloc[-1]
 
+
 # data loader
-def generic_data_loader(expression, batch_size, train=False):
+def generic_data_loader(rank_expression, log2_expression, batch_size):
     
-    test_tensor = torch.utils.data.TensorDataset(torch.Tensor(expression))
-    data_loader = torch.utils.data.DataLoader(test_tensor, batch_size=batch_size, shuffle=False, drop_last=False)
+    rank_tensor = torch.Tensor(rank_expression)
+    log2_tensor = torch.Tensor(log2_expression)
+    train_tensor = torch.utils.data.TensorDataset(rank_tensor, log2_tensor)
+    data_loader = torch.utils.data.DataLoader(train_tensor, batch_size=batch_size, shuffle=False, drop_last=False)
     
     return data_loader
 
+
 # one model predictor
-def validation(data_loader, model, device):
+def validation(data_loader, B_in, model, device):
     prob_pred_list = []
     order_pred_list = []
 
     model.eval()
     softmax = torch.nn.Softmax(dim=1)
     order_vector = torch.Tensor(np.arange(6).reshape(6,1)/5).to(device)
-    for batch_idx, X in enumerate(data_loader):
-        X = X[0].to(device)
+    for batch_idx, tensor in enumerate(data_loader):
+        X_rank, X_log2 = tensor
+        X_rank = X_rank.to(device)
+        X_log2 = X_log2.to(device)
 
-        model_output = model(X)
-        _, prob_pred = model_output
+        model_output = model(X_rank, X_log2, B_in)
+        prob_pred = model_output
         prob_pred = prob_pred.squeeze(2)
         prob_pred = softmax(prob_pred)
         prob_order = torch.matmul(prob_pred,order_vector)
-
         prob_pred_list.append(prob_pred.detach().cpu().numpy())
         order_pred_list.append(prob_order.squeeze(1).detach().cpu().numpy())
         
-
     return np.concatenate(prob_pred_list,0), np.concatenate(order_pred_list,0)
 
 
@@ -61,19 +77,18 @@ def disp_fn(x):
 
 
 # choosing top variable genes
-def top_var_genes(ranked_data):
+def top_var_genes(log2_data):
 
-    dispersion_index = [disp_fn(ranked_data[:, i]) for i in range(ranked_data.shape[1])]
+    dispersion_index = [disp_fn(log2_data[:, i]) for i in range(log2_data.shape[1])]
     top_col_inds = np.argsort(dispersion_index)[-1000:]
                         
     return top_col_inds
 
 
-
 def build_mapping_dict():
     fn_mart_export = pkg_resources.resource_filename("cytotrace2_py", "resources/mart_export.txt")
     human_mapping = pd.read_csv(fn_mart_export,sep='\t').dropna().reset_index()
-    fn_features = pkg_resources.resource_filename("cytotrace2_py", "resources/features_model_training_17.csv")
+    fn_features = pkg_resources.resource_filename("cytotrace2_py", "resources/features_model_training.csv")
     features = pd.read_csv(fn_features)['0']
     mapping_unique = human_mapping.groupby('Gene name').apply(top_hit_human)
     mapping_unique = mapping_unique.groupby('Mouse gene name').apply(top_hit_mouse)
@@ -87,8 +102,16 @@ def build_mapping_dict():
         if gene.upper() in mt_dict.keys():
             print(gene)
         mt_dict[gene.upper()] = gene
-
-    return mt_dict, mt_dict_alias_and_previous_symbols, features
+        
+    # **New Addition**: Load mouse alias mapping
+    fn_mouse_alias = pkg_resources.resource_filename("cytotrace2_py", "resources/mouse_alias_list.txt")
+    mouse_alias_mapping = pd.read_csv(fn_mouse_alias, sep='\t')
+    mt_mouse_alias_dict = dict(zip(
+        mouse_alias_mapping['alias'].values,
+        mouse_alias_mapping['mmgene'].values
+    ))
+    
+    return mt_dict, mt_dict_alias_and_previous_symbols, mt_mouse_alias_dict, features
 
 
 def load(input_path):
@@ -101,12 +124,49 @@ def load(input_path):
         raise ValueError("   Please make sure the cell names are unique.")
     return expression
 
+def read_file(file_path):
+    
+    if use_dt:
+        try:
+            file_delim = "," if file_path.lower().endswith(".csv") else "\t"
 
-def preprocess(expression, species):
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=pd.errors.ParserWarning)
+                file_data = dt.fread(file_path, header=True)
+                colnames = pd.read_csv(file_path, sep=file_delim, nrows=1, index_col=0).columns
+                rownames = file_data[:, 0].to_pandas().values.flatten()
+                file_data = file_data[:, 1:].to_pandas()
+                file_data.index = rownames
+                file_data.columns = colnames
+                file_data = file_data.astype(float)
+                if file_data.columns.duplicated().any():
+                    raise ValueError("   Please make sure the gene names are unique.")
+                if file_data.index.duplicated().any():
+                    raise ValueError("   Please make sure the cell names are unique.")
+
+        except Exception as e:
+            print("Error encountered while reading input: {}".format(file_path))
+            print("Please make sure that you provided the correct path to the input files.",
+                    "The following input file formats are supported:",
+                    ".csv with comma ',' as delimiter,",
+                    "and .txt or .tsv with tab '\\t' as delimiter.")
+            raise
+
+        return file_data.transpose()
+    
+    else:
+
+        file_data = load(file_path)
+        return file_data
+
+    
+
+
+def preprocess(expression, species, cores_to_use=1):
     gene_names = expression.columns 
-    mt_dict, mt_dict_alias_and_previous_symbols, features = build_mapping_dict()
-    # mapping to orthologs
+    mt_dict, mt_dict_alias_and_previous_symbols, mt_mouse_alias_dict, features = build_mapping_dict()
 
+    # If human, map genes to orthologs
     if species == "human":
         mapped_genes = gene_names.map(mt_dict)
         mapped_genes = mapped_genes.astype(object)
@@ -122,7 +182,18 @@ def preprocess(expression, species):
         expression = expression.iloc[:, [j for j, c in enumerate(expression.columns) if j not in idx]]
         
     else:   
-        mapped_genes = gene_names
+        # Handle mouse gene aliases
+        mapped_genes = gene_names.to_numpy()
+        unmapped_genes = set(mapped_genes) - set(features)
+        unmapped_genes_in_alias = unmapped_genes.intersection(set(mt_mouse_alias_dict.keys()))
+        valid_unmapped_genes = [gene for gene in unmapped_genes_in_alias if mt_mouse_alias_dict[gene] not in mapped_genes]
+        is_valid_unmapped_gene = np.isin(mapped_genes, list(valid_unmapped_genes))
+        indices_to_replace = np.where(is_valid_unmapped_gene)[0]
+
+        for idx in indices_to_replace:
+            alias = mapped_genes[idx]
+            mapped_genes[idx] = mt_mouse_alias_dict.get(alias, alias)
+            
         expression.columns = mapped_genes
             
     expression = expression[expression.columns[~expression.columns.isna()]]
@@ -134,60 +205,61 @@ def preprocess(expression, species):
         warnings.warn("    Please verify the input species is correct.\n    In case of a correct species input, be advised that model performance might be compromised due to gene space differences.")
     expression = pd.DataFrame(index=features).join(expression.T).T
     expression = expression.fillna(0)
+
     cell_names = expression.index
     gene_names = expression.columns
+    adata_X = expression.to_numpy()
+    log2_data = np.log2(1000000*adata_X.transpose()/adata_X.sum(1)+1).transpose()
+    rank_data = scipy.stats.rankdata(expression.values*-1,axis=1,method='average')
 
-    #print("    Ranking gene expression values within each cell")
-    ranked_data = scipy.stats.rankdata(expression.values*-1,axis=1,method='average') # ranking data
-    return cell_names, gene_names, ranked_data
+    return cell_names, gene_names, rank_data, log2_data
     
-def predict(ranked_data, cell_names, model_dir, batch_size = 10000):
+def predict(rank_data, log2_data, B_in, cell_names, model_dir, batch_size = 1000):
     
     device = "cpu"
-    n_labels = 6
-    n_genes = ranked_data.shape[1]
-    dropout = 0
-    
+
     all_preds_test = []
     all_order_test = []
-    
     all_models_path = pd.Series(np.array([os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(model_dir)) for f in fn]))
     all_models_path = all_models_path[all_models_path.str.endswith('.pt')]
-    
 
-    data_loader = generic_data_loader(ranked_data, batch_size)
-    
+    data_loader = generic_data_loader(rank_data, log2_data, batch_size)
+            
     #print('    Started prediction')
     for model_path in all_models_path:
         pytorch_model = torch.load(model_path, map_location=torch.device('cpu'))
-    
-        hidden_size = pytorch_model['layers.0.weight'].shape[1]
-    
-        model = models.BinaryEncoder(num_layers=n_labels, input_size=n_genes, dropout=dropout, hidden_size=hidden_size,num_labels=1)
+        
+        model = models.BinaryEncoder()
         model = model.to(device)
         model.load_state_dict(pytorch_model)
     
-        prob_test, order_test = validation(data_loader, model, device)
+        prob_test, order_test = validation(data_loader, B_in, model, device)
     
         all_preds_test.append(prob_test.reshape(-1,6,1))
         all_order_test.append(order_test.reshape(-1,1))
-    
+
     predicted_order = np.mean(np.concatenate(all_order_test,1),1)
     predicted_potency = np.argmax(np.concatenate(all_preds_test,2).mean(2),1)
+
     labels = ['Differentiated','Unipotent','Oligopotent','Multipotent','Pluripotent','Totipotent']
     labels_dict = dict(zip([0,1,2,3,4,5],labels))
     predicted_df = pd.DataFrame({'preKNN_CytoTRACE2_Score':predicted_order,'preKNN_CytoTRACE2_Potency':predicted_potency})
     predicted_df['preKNN_CytoTRACE2_Potency'] = predicted_df['preKNN_CytoTRACE2_Potency'].map(labels_dict)
+
+    ## GSBN scores
+    predicted_df[labels] = np.concatenate(all_preds_test,2).mean(2)
     predicted_df.index = cell_names
 
     return predicted_df
-# CytoTRACE-based smoothing functions
-def get_markov_matrix(ranked_data, top_col_inds):
-    num_samples, num_genes = ranked_data.shape
-    
-    sub_mat = ranked_data[:, top_col_inds]
 
-    D = np.corrcoef(sub_mat)  # Pairwise pearson-r corrs
+
+# CytoTRACE-based smoothing functions
+def get_markov_matrix(log2_data, top_col_inds):
+    num_samples, num_genes = log2_data.shape
+    
+    sub_mat = log2_data[:, top_col_inds]
+    with np.errstate(divide="ignore", invalid="ignore"): 
+        D = np.corrcoef(sub_mat)  # Pairwise pearson-r corrs
 
     D[np.arange(num_samples), np.arange(num_samples)] = 0
     D[np.where(D != D)] = 0
@@ -197,24 +269,8 @@ def get_markov_matrix(ranked_data, top_col_inds):
     A = D / (D.sum(1, keepdims=True) + 1e-5)
     return A
 
-
-def rescale_fn(adjusted_score, original_score, deg=1, ratio=None):
-    params = np.polyfit(adjusted_score, original_score, deg)
-    smoothed_score = 0
-    for i, p in enumerate(params):
-        smoothed_score += p * np.power(adjusted_score, deg - i)
-
-    if not ratio is None:
-        # Revert to original SD
-        smoothed_range = np.std(smoothed_score)
-        original_range = np.std(original_score) * ratio
-
-        smoothed_score = (smoothed_score - smoothed_score.mean()) / (smoothed_range + 1e-9)
-        smoothed_score = smoothed_score * original_range + original_score.mean()
-    return smoothed_score
-
-def smooth_subset(chunk_ranked_data,chunk_predicted_df,top_col_inds,maxiter):
-    markov_mat = get_markov_matrix(chunk_ranked_data, top_col_inds)
+def smooth_subset(chunk_log2_data,chunk_predicted_df,top_col_inds,maxiter):
+    markov_mat = get_markov_matrix(chunk_log2_data, top_col_inds)
     score = chunk_predicted_df["preKNN_CytoTRACE2_Score"]
     init_score = score.copy()
     prev_score = score.copy()
@@ -229,37 +285,31 @@ def smooth_subset(chunk_ranked_data,chunk_predicted_df,top_col_inds,maxiter):
 
     return cur_score
 
-def smoothing_by_diffusion(predicted_df, ranked_data, top_col_inds, smooth_batch_size=1000, smooth_cores_to_use=1, seed = 14,
+
+def smoothing_by_diffusion(predicted_df, log2_data, top_col_inds, smooth_batch_size=1000, smooth_cores_to_use=1, seed = 14,
                            maxiter=1e4,rescale=True, rescale_deg=1, rescale_ratio=None):
     # Set seed for reproducibility
     np.random.seed(seed)
-    if smooth_batch_size > len(ranked_data):
-        print("The passed subsample size is greater than the number of cells in the subsample. \n    Now setting subsample size to "+str(len(ranked_data))+". \n    Please consider reducing the smooth_batch_size to a number in range 1000 - 3000\n    for runtime and memory efficiency. ")
-        smooth_batch_size <- len(ranked_data)
-    elif len(ranked_data) > 1000 and smooth_batch_size > 1000:
-        print("Please consider reducing the smooth_batch_size to a number in range 1000 - 3000 for runtime and memory efficiency.")
 
-    #print('    Started smoothing')
-
-    # Calculate chunk number
-    chunk_number = math.ceil(len(ranked_data) / smooth_batch_size)
+    if smooth_batch_size > len(log2_data):
+        print("The passed subsample size is greater than the number of cells in the subsample. \n    Now setting subsample size to "+str(len(log2_data))+". ")
+        chunk_number = 1
+    else:
+        chunk_number = math.ceil(len(log2_data) / smooth_batch_size)
 
     original_names = predicted_df.index
-    subsamples_indices = np.arange(len(ranked_data))
+    subsamples_indices = np.arange(len(log2_data))
     np.random.shuffle(subsamples_indices)
     subsamples = np.array_split(subsamples_indices, chunk_number)
-    
-    # Extract sample names for each subsample
-    # shuffled_names = [predicted_df.index[subsample] for subsample in subsamples]
 
     smoothed_scores = []
     smooth_results = []
     # Process each chunk separately
     with concurrent.futures.ProcessPoolExecutor(max_workers=smooth_cores_to_use) as executor:
         for subsample in subsamples:
-            chunk_ranked_data = ranked_data[subsample, :]
+            chunk_log2_data = log2_data[subsample, :]
             chunk_predicted_df = predicted_df.iloc[subsample, :]
-            smooth_results.append(executor.submit(smooth_subset,chunk_ranked_data,chunk_predicted_df,top_col_inds,maxiter))
+            smooth_results.append(executor.submit(smooth_subset,chunk_log2_data,chunk_predicted_df,top_col_inds,maxiter))
         for f in concurrent.futures.as_completed(smooth_results):
             cur_score = f.result()
             smoothed_scores.append(cur_score)
@@ -268,10 +318,6 @@ def smoothing_by_diffusion(predicted_df, ranked_data, top_col_inds, smooth_batch
     smoothed_scores_concatenated = pd.concat(smoothed_scores)
    
     return smoothed_scores_concatenated[original_names]
-
-
-
-
 
 
 def binning(predicted_df, scores): # scores is smoothed scores
@@ -301,5 +347,159 @@ def binning(predicted_df, scores): # scores is smoothed scores
 
     predicted_df["preKNN_CytoTRACE2_Score"] = df_pred_potency[score][predicted_df.index]
 
-            
     return predicted_df
+
+
+# Adaptive nearest neighbors smoothing
+
+def map_score_to_potency(score):
+    labels = ['Differentiated','Unipotent','Oligopotent','Multipotent','Pluripotent','Totipotent']
+    ranges = np.linspace(0, 1, 7)  
+    if score <= ranges[1]:
+        return labels[0]
+    elif score <= ranges[2]:
+        return labels[1]
+    elif score <= ranges[3]:
+        return labels[2]
+    elif score <= ranges[4]:
+        return labels[3]   
+    elif score <= ranges[5]:
+        return labels[4]
+    elif score <= ranges[6]:
+        return labels[5]
+    else:
+        return np.nan
+        
+
+def shortest_consensus(neighbor_scores):
+    idx_use = 2
+    last_part = False
+    for i in range(2,math.floor(len(neighbor_scores)/2+1)):
+        if map_score_to_potency(np.mean(neighbor_scores[:i]))==map_score_to_potency(np.mean(neighbor_scores[i:2*i])) and not last_part:
+            idx_use = i
+            last_part = True
+    return 2*idx_use
+
+
+def neighborhood_smoothing_single_chunk(df_in, df_pca, chunk_cell_names):
+    cell_names = df_pca.index        
+    new_scores = []
+    for cell in chunk_cell_names:
+        cell_dist = pairwise_distances(df_pca.loc[cell,:].values.reshape(1, -1),df_pca)[0]
+        cell_dist = cell_dist / np.max(cell_dist)
+        neighbor_cells = np.argsort(cell_dist)[:30]
+        neighbor_dists = cell_dist[neighbor_cells]
+        neighbor_scores = df_in.loc[cell_names[neighbor_cells], 'preKNN_CytoTRACE2_Score'].values
+        num_neighbors_keep = shortest_consensus(neighbor_scores)
+        if num_neighbors_keep > 1:
+            new_neighbor_cells = neighbor_cells[:num_neighbors_keep]
+            new_neighbor_dists = neighbor_dists[:num_neighbors_keep]
+            new_neighbor_scores = neighbor_scores[:num_neighbors_keep]
+            neighbor_score_weights = ((1 - new_neighbor_dists) ** 2) / (((1 - new_neighbor_dists) ** 2).sum())
+            proposed_new_score = (new_neighbor_scores * (1 - new_neighbor_dists) ** 2).sum() / (
+                        (1 - new_neighbor_dists) ** 2).sum()
+            new_scores.append(proposed_new_score)
+        else:
+             new_scores.append(-1)
+    return pd.DataFrame(new_scores,columns=['Score'],index=chunk_cell_names)
+
+
+def neighborhood_smoothing(df_in, log2_data, cores_to_use = 10):
+    labels = ['Differentiated','Unipotent','Oligopotent','Multipotent','Pluripotent','Totipotent']
+    ranges = np.linspace(0, 1, 7)  
+    if len(df_in) < 100:
+        print('Fewer than 100 cells, neighborhood smoothing disabled')
+        df_in['CytoTRACE2_Score'] = df_in['preKNN_CytoTRACE2_Score']
+        df_in['CytoTRACE2_Potency'] = df_in['preKNN_CytoTRACE2_Potency']
+        
+    data_scale = scale(log2_data,axis=1)
+    df_out = df_in.copy()
+    df_out['CytoTRACE2_Score'] = 0.0
+    df_out['CytoTRACE2_Potency'] = ''
+
+    df_out['Smoothed_Score'] = df_in['preKNN_CytoTRACE2_Score'].copy()
+    
+    num_pcs = min(30, data_scale.shape[0] - 1)
+    pca = PCA(n_components=num_pcs, svd_solver='arpack')
+    cell_names = df_in.index
+    df_pca = pd.DataFrame(pca.fit_transform(data_scale),index=cell_names,columns=['PC'+str(i+1) for i in range(num_pcs)])
+    num_cells = df_in.shape[0]
+    num_chunks = cores_to_use
+    chunk_size = math.ceil(num_cells/num_chunks)
+    results = []
+    all_scores_out = []
+    with concurrent.futures.ProcessPoolExecutor(max_workers=cores_to_use) as executor:
+
+        for chunk in range(num_chunks):
+            chunk_cell_names = cell_names[(chunk_size*chunk):np.min([chunk_size*(chunk+1),num_cells])]
+            results.append(executor.submit(neighborhood_smoothing_single_chunk, df_in, df_pca, chunk_cell_names))
+        for f in concurrent.futures.as_completed(results):
+            chunk_scores = f.result()
+            all_scores_out.append(chunk_scores)
+
+    df_temp = pd.concat(all_scores_out,ignore_index=False)
+    df_out.loc[df_temp.index,'CytoTRACE2_Score'] = df_temp['Score'].values
+    df_out.loc[df_out['CytoTRACE2_Score']<-0.1,'CytoTRACE2_Score'] = df_out.loc[df_out['CytoTRACE2_Score']<-0.1,'CytoTRACE2_Score']
+    df_out['CytoTRACE2_Potency'] = ''
+    for i in range(len(labels)):
+        range_min = ranges[i]
+        range_max = ranges[i + 1]
+        df_out.loc[(range_min < df_out['CytoTRACE2_Score']) * (
+                    df_out['CytoTRACE2_Score'] <= range_max), 'CytoTRACE2_Potency'] = labels[i]
+    return df_out
+
+
+# String formatting for plots
+def format_string(s,max_line_length=25):
+    all_chunks = s.split(' ')
+    total_num_chunks = len(all_chunks)
+    new_string = ''
+    current_line_length = 0
+    i = 0
+    while i < total_num_chunks:  
+        chunk = all_chunks[i]
+        if len(chunk)>max_line_length:
+            line = chunk[:max_line_length]+'...\n'
+            new_string += line
+            i += 1
+        else:
+            current_line_length = len(chunk)
+            line = chunk
+            while (current_line_length < max_line_length) and ((i+1) < total_num_chunks):
+                candidate_line_length = len(line+' '+all_chunks[i+1])
+                if candidate_line_length < max_line_length:
+                    line += ' '+all_chunks[i+1]
+                    current_line_length = len(line)
+                    i += 1
+                else:
+                    current_line_length = max_line_length
+            new_string += line+'\n'
+            i += 1
+            
+    if new_string.endswith('\n'):
+        new_string = new_string[:-1]
+    
+    return new_string
+
+
+# Data processing for scanpy UMAPs
+def process_with_scanpy(df_exp,df_anno=None):
+    adata = sc.AnnData(df_exp)
+    if df_anno is not None:
+        pheno_col = df_anno.columns[0]
+        adata.obs['phenotype'] = df_anno.loc[df_exp.index,pheno_col].copy()
+        adata.obs['phenotype_txtwrap'] = [format_string(p) for p in adata.obs['phenotype']]
+    sc.pp.filter_cells(adata, min_genes=200)
+    sc.pp.filter_genes(adata, min_cells=3)
+    sc.pp.normalize_total(adata)
+    sc.pp.log1p(adata)
+    sc.pp.highly_variable_genes(adata)
+    sc.pp.scale(adata)
+    sc.pp.pca(adata)
+    sc.pp.neighbors(adata)
+    sc.tl.umap(adata)
+    del adata.X, adata.obsp, adata.var
+    return adata
+    
+
+

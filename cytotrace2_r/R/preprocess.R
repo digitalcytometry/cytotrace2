@@ -90,42 +90,28 @@ loadData_fromSeurat <- function(object, slot_type) {
 
 preprocessData <- function (data, species) {
   
-  # check for uniqueness of cell and gene names
-  if (any(duplicated(rownames(data)))) {
-    stop("Please make sure the gene names are unique")
-  }
-  
-  if (any(duplicated(colnames(data)))) {
-    stop("Please make sure the cell/sample names are unique")
-  }
-
-  if (!is.data.frame(data) & !is.data.table(data)) {
-   message("The function expects an input of type 'data.frame' or 'data.table'.\nAttempting to convert the provided input to the required format.")
-   data <- as.data.frame(data)
-  }
-  
   
   # Load the features_model.csv file
   features <- read.csv(system.file("extdata", "features_model_training_17.csv",
                                    package = "CytoTRACE2"),  row.names = 1,
-                                   check.names = FALSE)[[1]]
-
+                       check.names = FALSE)[[1]]
+  
   # mapping
   gene_names <- rownames(data)
   expression <- copy(data)
   data.table::setDT(expression)
-
-
-
+  
+  
+  
   if (species == "human") {
     # Load the presaved mouse-human orthology table
     mt_dict <- data.table::fread(system.file("extdata", "mt_dict_human_to_mouse.csv",
                                              package = "CytoTRACE2"), header = TRUE, stringsAsFactors = FALSE, check.names = FALSE)
     # message("cytotrace2: Mapping input gene names to mouse orthologs")
     mapping <- unlist(plyr::mapvalues(gene_names, colnames(mt_dict), mt_dict[1,], warn_missing = FALSE))
-
+    
     # map those unmapped genes that correspond to aliases of a human gene that has orthology but isn't in the dataset
-    rescue_dict <- read.csv(system.file("extdata", "mt_alias_dict.csv",
+    rescue_dict <- read.csv(system.file("extdata", "mt_human_alias.csv",
                                         package = "CytoTRACE2"), header = TRUE, check.names = FALSE)
     map_df <- data.frame("original_gene" = gene_names, 'mapped_gene' = mapping, "mapped" = ifelse(mapping %in% mt_dict[1,], "1", "0"))
     mapped_genes <- map_df[map_df$mapped == 1,]$original_gene
@@ -138,12 +124,21 @@ preprocessData <- function (data, species) {
     unmapped_original_with_alias <- map_df[map_df$original_gene %in% alias_to_unmapped_original,]$mapped_gene
     map_df[map_df$original_gene %in% alias_to_unmapped_original,]$mapped_gene <- rescue_dict[unmapped_original_with_alias,]$mmgene
     mapping <- map_df$mapped_gene
-
+    
   } else {
-    mapping <- gene_names
+    rescue_dict <- read.csv(system.file("extdata", "mt_mouse_alias.csv",
+                                        package = "CytoTRACE2"), header = TRUE, check.names = TRUE)
+    
+    mapping <- copy(gene_names)
+    unmapped_genes <- setdiff(mapping, features)
+    unmapped_genes_with_alias <- which(mapping %in% unmapped_genes[unmapped_genes %in% rescue_dict$alias])
+    filtered_rescue_dict <- rescue_dict[(rescue_dict$alias %in% mapping[unmapped_genes_with_alias]) &
+                                          !(rescue_dict$mmgene %in% mapping), ]
+    rownames(filtered_rescue_dict) <- filtered_rescue_dict$alias
+    mapping[mapping %in% filtered_rescue_dict$alias] <- filtered_rescue_dict[mapping[mapping %in% filtered_rescue_dict$alias], "mmgene"]
   }
-
-
+  
+  
   expression[, mapped_genes:= mapping]
   data.table::setkey(expression, mapped_genes)
   
@@ -158,22 +153,26 @@ preprocessData <- function (data, species) {
   # reducing to pre-selected features
   expression_final <- expression[.(features) ]
   data.table::setnafill(expression_final, fill = 0, cols=colnames(expression_final)[-ncol(expression_final)])
-
+  
   # message("cytotrace2: Ranking gene expression values within each cell/sample.")
-
+  
   data.table::setDF(expression_final)
   gene_names <- expression_final$mapped_genes
   expression_final$mapped_genes <- NULL
   cell_names <- colnames(expression_final)
-
-
+  
+  # check how many genes expressed per cell
+  num_expressed_per_cell <- colSums(expression_final > 0)
+  count_cells_few_genes <- sum(num_expressed_per_cell < 500)
+  
   ranked_data <- base::t(Rfast::colRanks(as.matrix(expression_final), descending = TRUE, method = "average"))
   colnames(ranked_data) <- gene_names
   rownames(ranked_data) <- cell_names
-
-  # return(list(expression_final, ranked_data))
-
-  return(ranked_data)
-
-
+  
+  log2_data <- base::log2((1000000*base::t(expression_final)/colSums(expression_final))+1)
+  colnames(log2_data) <- gene_names
+  rownames(log2_data) <- cell_names
+  
+  return(list(ranked_data, log2_data, count_cells_few_genes))
+  
 }
