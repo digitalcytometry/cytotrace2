@@ -453,32 +453,40 @@ CytoTRACE 2 classifies cells into six potency categories:
   - **Totipotent**: Stem cells capable of generating an entire multicellular organism
   - **Pluripotent**: Stem cells with the capacity to differentiate into all adult cell types
   - **Multipotent**: Lineage-restricted multipotent cells capable of producing >3 downstream cell types
-  - **Oligopotent**: Linage-restricted immature cells capable of producing 2-3 downstream cell types
-  - **Unipotent**: Linage-restricted immature cells capable of producing a single downstream cell type
+  - **Oligopotent**: Lineage-restricted immature cells capable of producing 2-3 downstream cell types
+  - **Unipotent**: Lineage-restricted immature cells capable of producing a single downstream cell type
   - **Differentiated**: Mature cells, including cells with no developmental potential
   
 2. **What organism can my data be from?**
-CytoTRACE 2 was developed over mouse and human data, and this package accepts data from either. If human data is provided (with ```species = 'human'``` specified), the algorithm will automatically perform an orthology mapping to convert human genes to mouse genes for the CytoTRACE 2 feature set. 
+
+    CytoTRACE 2 was developed over mouse and human data, and this package accepts data from either. If human data is provided (with ```species = 'human'``` specified), the algorithm will automatically perform an orthology mapping to convert human genes to mouse genes for the CytoTRACE 2 feature set. 
 
 3. **Should I normalize the data before running the main function?**
-No normalization is required, but either raw counts or CPM/TPM data are acceptable. However, data should *not* be log-transformed.
+
+    There is no need to normalize data prior to running CytoTRACE 2, provided there are no missing values and all values are non-negative. The input needs to be **raw counts or CPM/TPM normalized counts, and should not be log-transformed**.
 
 4. **What if I have multiple batches of data? Should I perform any integration?**
-No batch integration is required. Instead, we recommend running CytoTRACE 2 separately over each dataset. While raw predictions are made per cell without regard to the broader dataset, the postprocessing step to refine predictions adjusts predictions using information from other cells in the dataset, and so may be impacted by batch effects. Note that CytoTRACE 2 outputs are calibrated to be comparable across datasets without further adjustment, so no integration is recommended over the predictions either.
+
+    No batch integration is required. Instead, we recommend running CytoTRACE 2 separately over each dataset. While raw predictions are made per cell without regard to the broader dataset, the postprocessing step to refine predictions adjusts predictions using information from other cells in the dataset, and so may be impacted by batch effects. Note that CytoTRACE 2 outputs are calibrated to be comparable across datasets without further adjustment, so no integration is recommended over the predictions either.
 
 5. **Do the R and Python packages produce equivalent output?**
-When run without batching (i.e., downsampling the input dataset into batches [or chunks] for parallel processing or to save memory), these packages produce equivalent output. When batching is performed, package outputs will vary, but remain highly correlated in practice. Please note that processing for UMAP embeddings is implemented via a standard Seurat pipeline for the R package and a standard scanpy pipeline for the Python package. As a result, UMAP embeddings will differ between packages, even when predicted potency scores match exactly.
 
-6. **What if my dataset has rare cell types?**
-CytoTRACE 2 implements an adaptive nearest neighbor smoothing step as the final component of postprocessing. When analyzing phenotypes expected to have five or fewer cells, we recommend bypassing the KNN smoothing step so that predictions for these rare cells are not forced toward more abundant phenotypes. In practice, you can simply use the preKNN score output (preKNN_CytoTRACE2_Score) instead of the final KNN-smoothed value (CytoTRACE2_Score).
+    When run without batching (i.e., downsampling the input dataset into batches [or chunks] for parallel processing or to save memory), these packages produce equivalent output. When batching is performed, package outputs will vary, but remain highly correlated in practice. Please note that processing for UMAP embeddings is implemented via a standard Seurat pipeline for the R package and a standard scanpy pipeline for the Python package. As a result, UMAP embeddings will differ between packages, even when predicted potency scores match exactly.
+
+6. **What strategies are recommended for managing very large datasets (>100K cells) with CytoTRACE 2?**
+
+    For large datasets, subdividing the data into smaller segments, each containing up to 100,000 cells, is advisable. This division not only facilitates more efficient memory management and processing but also preserves the integrity of your analysis. Depending on the dataset’s characteristics, you can segment by experimental conditions (technical batches) or samples. Additionally, when choosing your subset size, please be mindful of the computational resources available to you--some systems may support ~100,000 cells while for others, a further reduced subset size may be preferable.
+
+7. **What if my dataset has rare cell types?**
+
+    CytoTRACE 2 implements an adaptive nearest neighbor smoothing step as the final component of postprocessing. When analyzing phenotypes expected to have five or fewer cells, we recommend bypassing the KNN smoothing step so that predictions for these rare cells are not forced toward more abundant phenotypes. In practice, you can simply use the preKNN score output (preKNN_CytoTRACE2_Score) instead of the final KNN-smoothed value (CytoTRACE2_Score).
+
+
+8. **Does CytoTRACE 2's performance depend on the number of UMI/gene counts per cell?**
+
+    Although generally insensitive to variation in gene/UMI counts per cell, CytoTRACE 2 requires further optimization for cells that have exceedingly low gene expression levels, particularly those with fewer than 500 genes expressed per cell, as its performance can become less reliable in these cases. For best results, **a minimum gene count of 500-1000 per cell is recommended.**
+
 </details>
-
-
-
-
-
-
-
 
 
 ## Authors
