@@ -256,7 +256,7 @@ Visualizing the results we can directly compare the predicted potency scores wit
 <div align="center">
   <div style="display: flex; justify-content: space-around;">
     <img width="470" src="images_py/Vignette1_potency_score_umap.png">
-    <img width="400" src="images_py/Vignette1_ground_truth_relative_order_umap.png">
+    <img width="400" src="images_py/Vignette1_ground_truth_rel_order_umap.png">
   </div>
 </div>
 
