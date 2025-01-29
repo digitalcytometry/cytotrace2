@@ -235,7 +235,7 @@ This dataset contains cells from 4 different embryonic stages of a murine pancre
 - Alpha, Beta, Delta, and Epsilon cells
 
 <p align="center">
-        <img width="600" src="images_py/Vignette1_phenotype_UMAP.png">
+        <img width="600" src="images_py/Vignette1_phenotype_umap.png">
 </p>
 
 Each of these cell types is at a different stage of development, with progenitors and precursors having varying potential to differentiate into other cell types, and mature cells having no potential for further development. We use CytoTRACE 2 to predict the absolute developmental potential of each cell, which we term as "potency score", as a continuous value ranging from 0 (differentiated) to 1 (stem cells capable of generating an entire multicellular organism). The discrete potency categories that the potency scores cover are ```Differentiated```, ```Unipotent```, ```Oligopotent```, ```Multipotent```, ```Pluripotent```, and ```Totipotent```.
@@ -255,8 +255,8 @@ Visualizing the results we can directly compare the predicted potency scores wit
 
 <div align="center">
   <div style="display: flex; justify-content: space-around;">
-    <img width="470" src="images_py/Vignette1_potency_score_UMAP.png">
-    <img width="400" src="images_py/Vignette1_ground_truth_relative_order_UMAP.png">
+    <img width="470" src="images_py/Vignette1_potency_score_umap.png">
+    <img width="400" src="images_py/Vignette1_ground_truth_relative_order_umap.png">
   </div>
 </div>
 
@@ -283,7 +283,7 @@ Visualizing the results we can directly compare the predicted potency scores wit
       plots/CytoTRACE2_potency_category_UMAP.pdf
       ```
       <p align="center">
-        <img width="600" src="images_py/Vignette1_potency_category_UMAP.png">
+        <img width="600" src="images_py/Vignette1_potency_category_umap.png">
       </p>
 
     - ***Relative order***
@@ -292,7 +292,7 @@ Visualizing the results we can directly compare the predicted potency scores wit
       plots/CytoTRACE2_relative_order_UMAP.pdf
       ```
       <p align="center">
-        <img width="600" src="images_py/Vignette1_relative_order_UMAP.png">
+        <img width="600" src="images_py/Vignette1_rel_order_umap.png">
       </p>
 
     - ***Phenotypes***
@@ -301,7 +301,7 @@ Visualizing the results we can directly compare the predicted potency scores wit
       plots/CytoTRACE2_phenotype_UMAP.pdf
       ```
       <p align="center">
-        <img width="620" height = "400" src="images_py/Vignette1_phenotype_UMAP.png">
+        <img width="620" height = "400" src="images_py/Vignette1_phenotype_umap.png">
       </p>
 </details>
 
