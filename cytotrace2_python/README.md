@@ -500,7 +500,9 @@ Please see the <a href="../LICENSE" target="_blank">LICENSE</a> file.
 
 
 ## Citation
-<!-- If you use CytoTRACE 2, please cite: -->
-Minji Kang*, Gunsagar S. Gulati*, Erin L. Brown*, Jose Juan Almagro Armenteros*, Rachel Gleyzer*, Zhen Qi*, Susanna Avagyan, Wubing Zhang, Chloé B. Steen, Jeremy D’Silva, Janella Schwab, Abul Usmani, Noah Earland, Zhenqin Wu, James Zou, Ryan C. Fields, David Y. Chen, Michael F. Clarke, Aadel A. Chaudhuri, and Aaron M. Newman. Mapping single-cell developmental potential in health and disease with interpretable deep learning.
+If you use CytoTRACE 2, please cite: 
+
+Minji Kang<sup>\*</sup>, Jose Juan Almagro Armenteros<sup>\*</sup>, Gunsagar S. Gulati<sup>\*</sup>, Rachel Gleyzer, Susanna Avagyan, Erin L. Brown, Wubing Zhang, Abul Usmani, Noah Earland, Zhenqin Wu, James Zou, Ryan C. Fields, David Y. Chen, Aadel A. Chaudhuri, and Aaron M. Newman<sup>†</sup>.
+Mapping single-cell developmental potential in health and disease with interpretable deep learning.
 bioRxiv 2024.03.19.585637; doi: https://doi.org/10.1101/2024.03.19.585637 (preprint)
 
