@@ -63,6 +63,8 @@ Please note that the environment solve time may vary from system to system and m
   pip install .
 ```
 
+Please note that the installation of the provided conda environment typically takes 10-20 minutes on a standard computer but can vary substantially, sometimes requiring up to an hour depending on system and conda version.
+
 __Optional:__
 For faster data reading, you can optionally install `datatable` (e.g., `pip install datatable` or `conda install -c conda-forge datatable`) if your OS and environment support it. If not installed, the code will default to using `pandas` for reading input files.
 

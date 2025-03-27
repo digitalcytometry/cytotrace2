@@ -76,6 +76,8 @@ This documentation page details the R package for applying CytoTRACE 2. <strong>
 
 See alternative installation and package management methods (including an easy-to-use conda environment that precisely solves all dependencies) in the [__Advanced options__](#advanced-options) section below.
 
+The installation of the CytoTRACE 2 package itself typically takes about one minute on a standard computer. Optional installation of the provided conda environment generally takes 5-10 minutes but can vary substantially, sometimes requiring up to an hour depending on system and conda version.
+
 NOTE: We recommend using Seurat v4 or later for full compatibility with CytoTRACE 2 package. If you don't have Seurat installed, you can install it by running ```install.packages("Seurat")``` in the R console prior to installing CytoTRACE 2 or use the provided conda environment.
 
 <details><summary>Dependencies</summary>
