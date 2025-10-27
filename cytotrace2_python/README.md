@@ -491,8 +491,12 @@ CytoTRACE 2 classifies cells into six potency categories:
 </details>
 
 
+## CytoTRACE 2 web application
+
+An interactive RShiny web application can be accessed at [cytotrace2.stanford.edu](https://cytotrace2.stanford.edu), allowing users to run analyses on their own data, browse results for 33 ground-truth–annotated datasets, explore potency-associated genes and gene-set enrichment across the single-cell potency atlas, download the atlas, and access Python vignettes for model training and custom GSBN architectures.
+
 ## Authors
-CytoTRACE 2 was developed in the <a href="https://anlab.stanford.edu/" target="_blank">Newman Lab</a> by Minji Kang, Erin Brown, Jose Juan Almagro Armenteros, Gunsagar Gulati, Rachel Gleyzer, and Susanna Avagyan.
+CytoTRACE 2 was developed in the <a href="https://anlab.stanford.edu/" target="_blank">Newman Lab</a> by Minji Kang, Gunsagar Gulati, Erin Brown, Susanna Avagyan, Jose Juan Almagro Armenteros and Rachel Gleyzer.
 
 ## Contact
 If you have any questions, please contact the CytoTRACE 2 team at cytotrace2team@gmail.com.
@@ -501,13 +505,17 @@ If you have any questions, please contact the CytoTRACE 2 team at cytotrace2team
 Please see the <a href="../LICENSE" target="_blank">LICENSE</a> file.
 
 
-<!-- ## Citation
+## Citation
 If you use CytoTRACE 2, please cite: 
 
-Minji Kang<sup>\*</sup>, Jose Juan Almagro Armenteros<sup>\*</sup>, Gunsagar S. Gulati<sup>\*</sup>, Rachel Gleyzer, Susanna Avagyan, Erin L. Brown, Wubing Zhang, Abul Usmani, Noah Earland, Zhenqin Wu, James Zou, Ryan C. Fields, David Y. Chen, Aadel A. Chaudhuri, and Aaron M. Newman<sup>†</sup>. -->
-## Preprint
+**Improved reconstruction of single-cell developmental potential with CytoTRACE 2.** *Nature Methods*, 2025. <br>
+Minji Kang<sup>\*</sup>, Gunsagar S. Gulati<sup>\*</sup>, Erin L. Brown<sup>\*</sup>, Zhen Qi<sup>\*</sup>, Susanna Avagyan, Jose Juan Almagro Armenteros, Rachel Gleyzer, Wubing Zhang, Chloé B. Steen, Jeremy Philip D’Silva, Janella Schwab, Michael F. Clarke, Aadel A. Chaudhuri, and Aaron M. Newman<sup>†</sup>.
+[doi.org/10.1038/s41592-025-02857-2](https://doi.org/10.1038/s41592-025-02857-2)
+
+
+<!-- ## Preprint
 Mapping single-cell developmental potential in health and disease with interpretable deep learning.
 
-bioRxiv 2024.03.19.585637; <br> doi: https://doi.org/10.1101/2024.03.19.585637
+bioRxiv 2024.03.19.585637; <br> doi: https://doi.org/10.1101/2024.03.19.585637 -->
 
 
