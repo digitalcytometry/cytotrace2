@@ -387,8 +387,8 @@ result = cytotrace2("path/to/input/cell_expression.txt",
                        species = "human",
                        batch_size = 10000,
                        smooth_batch_size = 1000,
-                       disable_plotting = False,
-                       disable_parallelization = False,
+                       disable_plotting = True,
+                       disable_parallelization = True,
                        max_cores = None,
                        seed = 14)               
 ```
