@@ -55,11 +55,14 @@ loadData <- function(filepath) {
 #' data("pbmc3k")
 #' data <- loadData_fromSeurat(pbmc3k)
 
-loadData_fromSeurat <- function(object, slot_type) {
+loadData_fromSeurat <- function(object, slot_type = "counts") {
 
   # load data
-  data <- as.data.frame(Seurat::GetAssayData(object = object, assay="RNA", slot=slot_type))
-
+  if (utils::packageVersion("SeuratObject") >= "5.0.0") {
+    data <- as.data.frame(SeuratObject::GetAssayData(object = object, assay = "RNA", layer = slot_type))
+  } else {
+    data <- as.data.frame(Seurat::GetAssayData(object = object, assay="RNA", slot=slot_type))
+  }
   return(data)
 }
 

@@ -76,8 +76,12 @@ plotData <- function(cytotrace2_result,
           message("UMAP and PCA slots are found in the input Seurat object. Using them for visualization.")
           seurat <- copy(cytotrace2_result)
         } else {
-          expression_data <- as.data.frame(GetAssayData(cytotrace2_result, assay = "RNA", slot = slot_type))
-          
+          if (utils::packageVersion("SeuratObject") >= "5.0.0") {
+            expression_data <- as.data.frame(SeuratObject::GetAssayData(object = cytotrace2_result, assay = "RNA", layer = slot_type))
+          } else {
+            expression_data <- as.data.frame(GetAssayData(cytotrace2_result, assay = "RNA", slot = slot_type))
+          }
+
           if (max(expression_data) >= 20) {
             seurat <- CreateSeuratObject(counts = as.matrix(expression_data), project = "nn")
             seurat <- NormalizeData(seurat, normalization.method = "LogNormalize", scale.factor = 10000)
