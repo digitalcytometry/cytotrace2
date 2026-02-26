@@ -7,8 +7,8 @@
 #' or a Seurat object containing predictions of raw and final potency scores and categories)
 #' @param expression_data Dataframe, expression data to be used for plotting
 #' If cytotrace2 is a Seurat object and is_seurat = TRUE, can be left NULL (default is NULL).
-#' @param annotation Dataframe, contains annotation data ' (optional, default is NULL, used only in phenotype based plots)
-#'                  Has rownames which are single cell IDs as in expression data, and at least 1 columns for the phenotype/grouping variable of interest
+#' @param annotation Dataframe, containing annotation data in the first column' (optional, default is NULL, used only in phenotype based plots)
+#'                  Has rownames which are single cell IDs as in expression data, and its first column contains the phenotype/grouping variable of interest
 #' @param is_seurat Logical, indicating whether the input is a Seurat object (default is FALSE). 
 #' If TRUE and Seurat object contains PCA and UMAP embeddings, those will be automatically used for visualization, otherwise, PCA and UMAP will be calculated.
 #' @param slot_type Character, indicating the type of slot to access from "RNA" assay if provided is a Seurat object &
