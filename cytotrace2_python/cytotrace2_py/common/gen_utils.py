@@ -114,21 +114,19 @@ def build_mapping_dict():
     return mt_dict, mt_dict_alias_and_previous_symbols, mt_mouse_alias_dict, features
 
 
-def load(input_path, sep=','):
+def load(input_path):
     print("cytotrace2: Loading dataset")
-    expression = pd.read_csv(input_path,sep=sep,index_col=0).T # read data
+    expression = pd.read_csv(input_path,sep="\t",index_col=0).T # read data
     # expression = expression.loc[:,~expression.columns.duplicated()].copy() #drop duplicate gene names, to avoid random information loss make sure the genes are unique
     return expression
 
 def read_file(file_path):
     try:
-        file_delim = "," if file_path.lower().endswith(".csv") else "\t"
-    
         if use_dt:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=pd.errors.ParserWarning)
                 expression = dt.fread(file_path, header=True)
-                colnames = pd.read_csv(file_path, sep=file_delim, nrows=1, index_col=0).columns
+                colnames = pd.read_csv(file_path, sep="\t", nrows=1, index_col=0).columns
                 rownames = expression[:, 0].to_pandas().values.flatten()
                 expression = expression[:, 1:].to_pandas()
                 expression.index = rownames
@@ -137,7 +135,7 @@ def read_file(file_path):
                 expression = expression.transpose()
 
         else:    
-            expression = load(file_path, sep=file_delim)
+            expression = load(file_path)
         
         if expression.columns.duplicated().any():
             raise ValueError("   Please make sure the gene names are unique.")
@@ -151,8 +149,7 @@ def read_file(file_path):
         print("Error encountered while reading input: {}".format(file_path))
         print("Please make sure that you provided the correct path to the input files.",
                 "The following input file formats are supported:",
-                ".csv with comma ',' as delimiter,",
-                "and .txt or .tsv with tab '\\t' as delimiter.")
+                ".csv, .txt, or .tsv with tab '\\t' as delimiter.")
         raise
     
 
