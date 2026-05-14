@@ -6,7 +6,7 @@
 Python package for CytoTRACE 2
 </p> </h1>
 
-This documentation page details the Python package for applying CytoTRACE 2.
+This documentation page details the Python package for applying CytoTRACE 2 ([Kang et al., *Nature Methods* 2025](https://doi.org/10.1038/s41592-025-02857-2)).
 
 For the R package implementing CytoTRACE 2, see <a href="/" target="_blank">CytoTRACE 2 R</a>.
 
@@ -14,7 +14,7 @@ For the R package implementing CytoTRACE 2, see <a href="/" target="_blank">Cyto
 
 <details><summary>Expand section</summary>
 
-CytoTRACE 2 is a computational method for predicting cellular potency categories and absolute developmental potential from single-cell RNA-sequencing data. 
+CytoTRACE 2 is a computational method for predicting cellular potency categories and absolute developmental potential from single-cell RNA-sequencing data ([Kang et al., *Nature Methods* 2025](https://doi.org/10.1038/s41592-025-02857-2)).
 
 Potency categories in the context of CytoTRACE 2 classify cells based on their developmental potential, ranging from totipotent and pluripotent cells with broad differentiation potential to lineage-restricted oligopotent, multipotent and unipotent cells capable of producing varying numbers of downstream cell types, and finally, differentiated cells, ranging from mature to terminally differentiated phenotypes.
 
@@ -29,6 +29,14 @@ This framework learns multivariate gene expression programs for each potency cat
 </p>
 
 </details>
+
+
+## Citation
+If you use CytoTRACE 2, please cite: 
+
+**Improved reconstruction of single-cell developmental potential with CytoTRACE 2.** *Nature Methods*, 2025. <br>
+Minji Kang<sup>\*</sup>, Gunsagar S. Gulati<sup>\*</sup>, Erin L. Brown<sup>\*</sup>, Zhen Qi<sup>\*</sup>, Susanna Avagyan, Jose Juan Almagro Armenteros, Rachel Gleyzer, Wubing Zhang, Chloé B. Steen, Jeremy Philip D’Silva, Janella Schwab, Michael F. Clarke, Aadel A. Chaudhuri, and Aaron M. Newman<sup>†</sup>.
+[doi.org/10.1038/s41592-025-02857-2](https://doi.org/10.1038/s41592-025-02857-2)
 
 
 ## Installation instructions (10-20 minutes)
@@ -504,13 +512,6 @@ If you have any questions, please contact the CytoTRACE 2 team at cytotrace2team
 ## License
 Please see the <a href="../LICENSE" target="_blank">LICENSE</a> file.
 
-
-## Citation
-If you use CytoTRACE 2, please cite: 
-
-**Improved reconstruction of single-cell developmental potential with CytoTRACE 2.** *Nature Methods*, 2025. <br>
-Minji Kang<sup>\*</sup>, Gunsagar S. Gulati<sup>\*</sup>, Erin L. Brown<sup>\*</sup>, Zhen Qi<sup>\*</sup>, Susanna Avagyan, Jose Juan Almagro Armenteros, Rachel Gleyzer, Wubing Zhang, Chloé B. Steen, Jeremy Philip D’Silva, Janella Schwab, Michael F. Clarke, Aadel A. Chaudhuri, and Aaron M. Newman<sup>†</sup>.
-[doi.org/10.1038/s41592-025-02857-2](https://doi.org/10.1038/s41592-025-02857-2)
 
 
 <!-- ## Preprint

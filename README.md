@@ -6,9 +6,9 @@
       CytoTRACE 2 - Version 1.1.0 Released
 </p> </h2>
 
-We are thrilled to introduce **CytoTRACE 2 version 1.1.0**, packed with significant performance enhancements to elevate your single-cell transcriptomic analyses. Here's what's new in this release:
+We are thrilled to introduce **CytoTRACE 2 version 1.1.0**, published in [*Nature Methods*](https://doi.org/10.1038/s41592-025-02857-2) and packed with significant performance enhancements to elevate your single-cell transcriptomic analyses. Here's what's new in this release:
 
-### 🔍 Major Updates and Enhancements
+<details><summary>Major Updates and Enhancements 🔍</summary>
 
 - **Retrained CytoTRACE 2 Framework**  
   The CytoTRACE 2 model has been retrained, yielding additional performance gains in granular potency prediction and enhancing cross-platform robustness.
@@ -25,7 +25,9 @@ We are thrilled to introduce **CytoTRACE 2 version 1.1.0**, packed with signific
 - **Adaptive Nearest Neighbor Smoothing**  
   Modified the KNN smoothing step to employ an adaptive nearest neighbor smoothing strategy.
 
-### 💻 Codebase and Distribution Updates
+</details>
+
+<details><summary>Codebase and Distribution Updates 💻</summary>
 
 - **Codebase Updates**  
   - Updated both R and Python package codebases to reflect all the above changes.
@@ -34,20 +36,25 @@ We are thrilled to introduce **CytoTRACE 2 version 1.1.0**, packed with signific
 - **Enhanced Python Package Distribution**  
   The Python version of CytoTRACE 2 is now available on [PyPI](https://pypi.org/project/cytotrace2-py/), making installation easier for Python users.
 
-### 📚 Documentation and Guides
+</details>
+
+<details><summary>Documentation and Guides 📚</summary>
 
 - Updated Vignettes to align with the new model features and usage instructions.
 - Refreshed README with new information, detailed explanations, and FAQ items tailored to the new framework.
 
----
+</details>
 
 We deeply appreciate the contributions from our community that made this release possible. Thank you for your continued support! 🙏
+
+---
+
 
 <h2> <p align="center">
       Prediction of absolute developmental potential <br> using  single-cell expression data
 </p> </h2>
 
-**CytoTRACE 2** is a computational method for predicting cellular potency categories and absolute developmental potential from single-cell RNA-sequencing data. 
+**CytoTRACE 2** is a computational method for predicting cellular potency categories and absolute developmental potential from single-cell RNA-sequencing data ([Kang et al., *Nature Methods* 2025](https://doi.org/10.1038/s41592-025-02857-2)).
 
 Potency categories in the context of CytoTRACE 2 classify cells based on their developmental potential, ranging from totipotent and pluripotent cells with broad differentiation potential to lineage-restricted oligopotent, multipotent and unipotent cells capable of producing varying numbers of downstream cell types, and finally, differentiated cells, ranging from mature to terminally differentiated phenotypes.
 
@@ -62,6 +69,20 @@ This framework learns multivariate gene expression programs for each potency cat
 </p>
 
 This documentation page details the R package for applying CytoTRACE 2. <strong> For the python package, see <a href="/cytotrace2_python" target="_blank">CytoTRACE 2 Python</a>.</strong>
+
+
+## Citation
+If you use CytoTRACE 2, please cite: 
+
+**Improved reconstruction of single-cell developmental potential with CytoTRACE 2.** *Nature Methods*, 2025. <br>
+Minji Kang<sup>\*</sup>, Gunsagar S. Gulati<sup>\*</sup>, Erin L. Brown<sup>\*</sup>, Zhen Qi<sup>\*</sup>, Susanna Avagyan, Jose Juan Almagro Armenteros, Rachel Gleyzer, Wubing Zhang, Chloé B. Steen, Jeremy Philip D’Silva, Janella Schwab, Michael F. Clarke, Aadel A. Chaudhuri, and Aaron M. Newman<sup>†</sup>.
+[doi.org/10.1038/s41592-025-02857-2](https://doi.org/10.1038/s41592-025-02857-2)
+
+
+<!-- ## Preprint
+Mapping single-cell developmental potential in health and disease with interpretable deep learning.
+
+bioRxiv 2024.03.19.585637; <br> doi: https://doi.org/10.1101/2024.03.19.585637 -->
 
 
 ## Installation
@@ -750,17 +771,3 @@ If you have any questions, please contact the CytoTRACE 2 team at cytotrace2team
 
 ## License
 Please see the <a href="LICENSE" target="_blank">LICENSE</a> file.
-
-## Citation
-If you use CytoTRACE 2, please cite: 
-
-**Improved reconstruction of single-cell developmental potential with CytoTRACE 2.** *Nature Methods*, 2025. <br>
-Minji Kang<sup>\*</sup>, Gunsagar S. Gulati<sup>\*</sup>, Erin L. Brown<sup>\*</sup>, Zhen Qi<sup>\*</sup>, Susanna Avagyan, Jose Juan Almagro Armenteros, Rachel Gleyzer, Wubing Zhang, Chloé B. Steen, Jeremy Philip D’Silva, Janella Schwab, Michael F. Clarke, Aadel A. Chaudhuri, and Aaron M. Newman<sup>†</sup>.
-[doi.org/10.1038/s41592-025-02857-2](https://doi.org/10.1038/s41592-025-02857-2)
-
-
-<!-- ## Preprint
-Mapping single-cell developmental potential in health and disease with interpretable deep learning.
-
-bioRxiv 2024.03.19.585637; <br> doi: https://doi.org/10.1101/2024.03.19.585637 -->
-
